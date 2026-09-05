@@ -49,8 +49,8 @@
 		<!-- MyBatis-plus -->
 		<dependency>
 			<groupId>com.baomidou</groupId>
-			<artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-			<version>3.5.5</version>
+			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+			<version>3.5.15</version>
 		</dependency>
 		<!--MySQL Driver-->
 		<dependency>

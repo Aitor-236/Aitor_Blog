@@ -1,8 +1,8 @@
 spring:
-    application:
-        name: blog_backend
-    datasource:
-        url: jdbc:mysql://localhost:3306/blog_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
-        username: root
-        password: sakura
-        driver-class-name: com.mysql.cj.jdbc.Driver
+  application:
+    name: blog_backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/blog_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: sakura
+    driver-class-name: com.mysql.cj.jdbc.Driver
