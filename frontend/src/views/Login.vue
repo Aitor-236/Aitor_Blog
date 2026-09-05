@@ -49,6 +49,8 @@ async function handleLogin() {
     }
 
     ElMessage.success(`登录成功，欢迎回来，${response.data.username}`)
+  } catch (error: any) {
+    console.error('登录失败:', error)
   } finally {
     loading.value = false
   }

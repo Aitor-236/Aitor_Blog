@@ -10,7 +10,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new JwtInterceptor())
-        .addPathPatterns("/*")                // intercept all requests
+        .addPathPatterns("/**")                // intercept all requests
         .excludePathPatterns("/auth/login");  // exclude login endpoint from interception
     }
 }
