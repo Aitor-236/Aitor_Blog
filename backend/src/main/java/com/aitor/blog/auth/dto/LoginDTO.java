@@ -6,8 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 
 @Data 
 public class LoginDTO {
-    @NotBlank(message = "Username cannot be blank")
+    // username or email can be used for login
     private String username;
+    private String email;
 
     @NotBlank(message = "Password cannot be blank")
     private String password;
