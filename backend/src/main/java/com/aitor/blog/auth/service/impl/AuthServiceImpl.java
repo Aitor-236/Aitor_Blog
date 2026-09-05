@@ -1,7 +1,7 @@
 package com.aitor.blog.auth.service.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import com.aitor.blog.auth.dto.LoginDTO;
 import com.aitor.blog.auth.dto.LoginVO;
@@ -12,13 +12,17 @@ import com.aitor.blog.common.result.Result;
 import com.aitor.blog.common.utils.JwtUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
+@Service
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired 
     private SysUserMapper sysUserMapper;
 
-    @Autowired 
     private PasswordEncoder passwordEncoder;
+
+    public AuthServiceImpl(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
+        this.sysUserMapper = sysUserMapper;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     public Result<?> login(LoginDTO loginDTO) {
