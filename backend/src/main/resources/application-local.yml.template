@@ -1,0 +1,10 @@
+spring:
+    datasource:
+        url: jdbc:mysql://localhost:3306/blog_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+        username: root
+        password: please input your password
+        driver-class-name: com.mysql.cj.jdbc.Driver
+
+jwt:
+    secret-key: please input your JWT key
+    expire-time: 86400000 # 24 hours

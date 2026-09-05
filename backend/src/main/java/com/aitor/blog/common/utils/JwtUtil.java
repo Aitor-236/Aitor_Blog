@@ -1,18 +1,23 @@
 package com.aitor.blog.common.utils;
 
 import java.util.Date;
+import org.springframework.stereotype.Component;
+
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+
+import lombok.RequiredArgsConstructor;
+
+import com.aitor.blog.config.JwtProperties;
 import com.auth0.jwt.JWT;
 
+@Component 
+@RequiredArgsConstructor 
 public class JwtUtil {
     // This class is intended to provide utility methods for handling JWT.
     // The implementation details for generating, validating, and parsing JWTs would be added here.
 
-    // secret key
-    private static final String SECRET_KEY = "aitor_blog_secret_key";
-    // expiration time in milliseconds
-    private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 1 day
+    private final JwtProperties jwtProperties;
 
     /**
      * Generates a JWT token for the given user ID and username.
@@ -20,13 +25,13 @@ public class JwtUtil {
      * @param username The username of the user for whom to generate the token.
      * @return The generated JWT token.
      */
-    public static String generateToken(Long userId, String username) {
-        Date date = new Date(System.currentTimeMillis() + EXPIRATION_TIME);
+    public String generateToken(Long userId, String username) {
+        Date date = new Date(System.currentTimeMillis() + jwtProperties.getExpireTime());
         return JWT.create()
                 .withClaim("userId", userId)
                 .withClaim("username", username)
                 .withExpiresAt(date)
-                .sign(Algorithm.HMAC256(SECRET_KEY));
+                .sign(Algorithm.HMAC256(jwtProperties.getSecretKey()));
     }
     
     /**
@@ -34,9 +39,9 @@ public class JwtUtil {
      * @param token The JWT token to verify.
      * @return true if the token is valid, false otherwise.
      */
-    public static boolean verifyToken(String token) {
+    public boolean verifyToken(String token) {
         try {
-            JWT.require(Algorithm.HMAC256(SECRET_KEY)).build().verify(token);
+            JWT.require(Algorithm.HMAC256(jwtProperties.getSecretKey())).build().verify(token);
             return true;
         } catch (Exception e) {
             return false;

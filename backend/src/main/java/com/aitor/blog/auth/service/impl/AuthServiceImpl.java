@@ -12,17 +12,17 @@ import com.aitor.blog.common.result.Result;
 import com.aitor.blog.common.utils.JwtUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor 
 public class AuthServiceImpl implements AuthService {
 
-    private SysUserMapper sysUserMapper;
+    private final SysUserMapper sysUserMapper;
 
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthServiceImpl(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
-        this.sysUserMapper = sysUserMapper;
-        this.passwordEncoder = passwordEncoder;
-    }
+    private final JwtUtil jwtUtil;
 
     @Override
     public Result<?> login(LoginDTO loginDTO) {
@@ -50,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Generate JWT token
-        String token = JwtUtil.generateToken(user.getId(), user.getUsername());
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
 
         // Return VO with token and user info
         LoginVO loginVO = new LoginVO(token, user.getUsername(), user.getEmail());

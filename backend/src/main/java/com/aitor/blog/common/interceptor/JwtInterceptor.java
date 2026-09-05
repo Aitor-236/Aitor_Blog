@@ -3,9 +3,17 @@ package com.aitor.blog.common.interceptor;
 import com.aitor.blog.common.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
 import org.springframework.web.servlet.HandlerInterceptor;
 
+@Component
+@RequiredArgsConstructor 
 public class JwtInterceptor implements HandlerInterceptor {
+
+    private final JwtUtil jwtUtil;
+
     @Override 
     public boolean preHandle(
         HttpServletRequest request,
@@ -19,7 +27,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7); // Remove "Bearer " prefix
-            if (JwtUtil.verifyToken(token)) {
+            if (jwtUtil.verifyToken(token)) {
                 return true; // Token is valid, proceed with the request
             }
         }
