@@ -15,6 +15,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
         .addPathPatterns("/**")                // intercept all requests
-        .excludePathPatterns("/auth/login");  // exclude login endpoint from interception
+        .excludePathPatterns(
+                "/auth/login",                 // login endpoint
+                "/article/list",               // public article cards
+                "/article/detail/**",          // public article detail
+                "/category/list");             // public category list
     }
 }
