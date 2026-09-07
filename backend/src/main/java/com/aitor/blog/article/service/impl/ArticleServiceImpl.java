@@ -73,7 +73,7 @@ public class ArticleServiceImpl implements ArticleService {
         if (categoryIds.isEmpty()) {
             return Map.of();
         }
-        return articleCategoryMapper.selectBatchIds(categoryIds).stream()
+        return articleCategoryMapper.selectByIds(categoryIds).stream()
                 .collect(Collectors.toMap(ArticleCategory::getId, ArticleCategory::getName));
     }
 
