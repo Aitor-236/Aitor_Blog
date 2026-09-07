@@ -52,6 +52,12 @@
 			<artifactId>mybatis-plus-spring-boot4-starter</artifactId>
 			<version>3.5.15</version>
 		</dependency>
+		<!-- MyBatis-Plus 3.5.9+ 分页插件已从核心拆分到独立包 -->
+		<dependency>
+			<groupId>com.baomidou</groupId>
+			<artifactId>mybatis-plus-jsqlparser</artifactId>
+			<version>3.5.15</version>
+		</dependency>
 		<!--MySQL Driver-->
 		<dependency>
 			<groupId>com.mysql</groupId>
