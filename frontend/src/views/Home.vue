@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import request from '@/utils/request'
 
-/** 文章模拟数据类型 */
+/** 文章卡片类型（来自 GET /article/list） */
 interface ArticleItem {
   id: number
   title: string
   summary: string
-  tag: string
-  date: string
-  minutes: number
+  categoryName: string
+  publishedAt: string
+  readingMinutes: number
 }
 
 /** 画作模拟数据类型 */
@@ -20,36 +21,22 @@ interface ArtworkItem {
   palette: string[]
 }
 
-// TODO: 后端接口就绪后，将下面两个 ref 的初始模拟数据替换为接口返回的数据
-// 例如：const { data } = await request.get('/home/latest'); latestArticles.value = data.articles
-const latestArticles = ref<ArticleItem[]>([
-  {
-    id: 1,
-    title: '从零开始搭建 Vue 3 个人博客',
-    summary:
-      '记录开发中遇到的 Element Plus 组件注册、路由出口缺失以及登录页样式问题，算是一份小小的踩坑笔记。',
-    tag: '前端',
-    date: '2026-09-03',
-    minutes: 8
-  },
-  {
-    id: 2,
-    title: '水彩练习：雨后的绿色庭院',
-    summary:
-      '尝试以低饱和的浅绿色调表现雨后庭院的湿润感，分享配色过程与留白的小心得。',
-    tag: '绘画',
-    date: '2026-08-28',
-    minutes: 6
-  },
-  {
-    id: 3,
-    title: 'Spring Boot + JWT 登录鉴权小结',
-    summary: '梳理用户名或邮箱登录、密码校验、JWT 签发以及拦截器鉴权的完整流程。',
-    tag: '后端',
-    date: '2026-08-15',
-    minutes: 10
+function formatDate(value: string) {
+  return value.slice(0, 10)
+}
+
+const latestArticles = ref<ArticleItem[]>([])
+
+async function loadLatestArticles() {
+  const res = (await request.get('/article/list', {
+    params: { page: 1, size: 3 }
+  })) as {
+    data: { records: ArticleItem[] }
   }
-])
+  latestArticles.value = res.data.records
+}
+
+onMounted(loadLatestArticles)
 
 const latestArtworks = ref<ArtworkItem[]>([
   {
@@ -93,7 +80,7 @@ const latestArtworks = ref<ArtworkItem[]>([
         </div>
       </section>
 
-      <!-- 最新文章：由模拟数据驱动，后续可切换为后端数据 -->
+      <!-- 最新文章：来自后端已发布文章接口 -->
       <section class="content-section">
         <div class="section-header">
           <h2>最新文章</h2>
@@ -106,12 +93,12 @@ const latestArtworks = ref<ArtworkItem[]>([
             :key="article.id"
             class="glass-card article-card"
           >
-            <span class="card-tag">{{ article.tag }}</span>
+            <span class="card-tag">{{ article.categoryName }}</span>
             <h3>{{ article.title }}</h3>
             <p>{{ article.summary }}</p>
             <footer class="card-footer">
-              <time :datetime="article.date">{{ article.date }}</time>
-              <span>约 {{ article.minutes }} 分钟</span>
+              <time :datetime="article.publishedAt">{{ formatDate(article.publishedAt) }}</time>
+              <span>约 {{ article.readingMinutes }} 分钟</span>
             </footer>
           </article>
         </div>

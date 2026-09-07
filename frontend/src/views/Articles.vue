@@ -1,94 +1,69 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import request from '@/utils/request'
 
-/** 文章数据类型 */
+/** 文章卡片类型（来自 GET /article/list） */
 interface ArticleItem {
   id: number
   title: string
   summary: string
-  tag: string
-  date: string
-  minutes: number
+  categoryName: string
+  publishedAt: string
+  readingMinutes: number
 }
 
-// TODO: 后端接口就绪后，将 articles 初始模拟数据替换为接口返回数据
-const articles = ref<ArticleItem[]>([
-  {
-    id: 1,
-    title: '从零开始搭建 Vue 3 个人博客',
-    summary:
-      '记录开发中遇到的 Element Plus 组件注册、路由出口缺失以及登录页样式问题，算是一份小小的踩坑笔记。',
-    tag: '前端',
-    date: '2026-09-03',
-    minutes: 8
-  },
-  {
-    id: 2,
-    title: '水彩练习：雨后的绿色庭院',
-    summary:
-      '尝试以低饱和的浅绿色调表现雨后庭院的湿润感，分享配色过程与留白的小心得。',
-    tag: '绘画',
-    date: '2026-08-28',
-    minutes: 6
-  },
-  {
-    id: 3,
-    title: 'Spring Boot + JWT 登录鉴权小结',
-    summary: '梳理用户名或邮箱登录、密码校验、JWT 签发以及拦截器鉴权的完整流程。',
-    tag: '后端',
-    date: '2026-08-15',
-    minutes: 10
-  },
-  {
-    id: 4,
-    title: '一文读懂 CSS 毛玻璃效果',
-    summary:
-      '从 backdrop-filter 到饱和度的调节，拆解浅色玻璃卡片在日常页面中的落地技巧。',
-    tag: '前端',
-    date: '2026-07-30',
-    minutes: 7
-  },
-  {
-    id: 5,
-    title: '六月书单：慢慢读，慢慢画',
-    summary: '分享最近在阅读的几本书，以及它们如何悄悄影响了我的画面与文字。',
-    tag: '生活',
-    date: '2026-07-08',
-    minutes: 5
-  },
-  {
-    id: 6,
-    title: '数码插画里如何画好绿色植物',
-    summary:
-      '整理常用的绿色配色方案、笔刷选择与图层习惯，让植物看起来柔软又有生命力。',
-    tag: '绘画',
-    date: '2026-06-18',
-    minutes: 9
-  }
-])
+/** 分类类型（来自 GET /category/list） */
+interface CategoryItem {
+  id: number
+  name: string
+  slug: string
+  articleCount: number
+}
 
-// 分类筛选：目前先在前端筛选模拟数据
-const tags = ['全部', '前端', '后端', '绘画', '生活']
+function formatDate(value: string) {
+  return value.slice(0, 10)
+}
+
+const articles = ref<ArticleItem[]>([])
+const categories = ref<CategoryItem[]>([])
 const activeTag = ref('全部')
 
-const filteredArticles = computed(() => {
-  if (activeTag.value === '全部') {
-    return articles.value
+const totalArticles = computed(() =>
+  categories.value.reduce((sum, category) => sum + category.articleCount, 0)
+)
+
+const tagOptions = computed(() => [
+  { name: '全部', count: totalArticles.value },
+  ...categories.value.map((category) => ({
+    name: category.name,
+    count: category.articleCount
+  }))
+])
+
+async function loadCategories() {
+  const res = (await request.get('/category/list')) as { data: CategoryItem[] }
+  categories.value = res.data
+}
+
+async function loadArticles() {
+  const activeCategory = categories.value.find((category) => category.name === activeTag.value)
+  const res = (await request.get('/article/list', {
+    params: { page: 1, size: 100, category: activeCategory?.slug }
+  })) as {
+    data: { records: ArticleItem[] }
   }
-  return articles.value.filter((article) => article.tag === activeTag.value)
-})
+  articles.value = res.data.records
+}
 
 function selectTag(tag: string) {
   activeTag.value = tag
+  void loadArticles()
 }
 
-/** 计算每个分类下的文章数量，用于右侧分类面板展示 */
-function countByTag(tag: string) {
-  if (tag === '全部') {
-    return articles.value.length
-  }
-  return articles.value.filter((article) => article.tag === tag).length
-}
+onMounted(async () => {
+  await loadCategories()
+  await loadArticles()
+})
 </script>
 
 <template>
@@ -106,22 +81,22 @@ function countByTag(tag: string) {
 
       <!-- 左侧内容 + 右侧分类 -->
       <div class="articles-layout">
-        <!-- 文章列表：由模拟数据驱动，仅做展示，不提供添加功能 -->
+        <!-- 文章列表：数据来自后端文章接口 -->
         <section class="content-column">
-          <div v-if="filteredArticles.length" class="article-list">
+          <div v-if="articles.length" class="article-list">
             <article
-              v-for="article in filteredArticles"
+              v-for="article in articles"
               :key="article.id"
               class="article-item glass-card"
             >
               <div class="article-head">
-                <span class="card-tag">{{ article.tag }}</span>
-                <time :datetime="article.date">{{ article.date }}</time>
+                <span class="card-tag">{{ article.categoryName }}</span>
+                <time :datetime="article.publishedAt">{{ formatDate(article.publishedAt) }}</time>
               </div>
               <h2>{{ article.title }}</h2>
               <p>{{ article.summary }}</p>
               <footer class="article-footer">
-                <span>约 {{ article.minutes }} 分钟读完</span>
+                <span>约 {{ article.readingMinutes }} 分钟读完</span>
                 <!-- TODO: 后续增加文章详情路由后，在这里放“阅读全文”入口 -->
                 <span class="read-more" aria-hidden="true">阅读全文 ›</span>
               </footer>
@@ -139,15 +114,15 @@ function countByTag(tag: string) {
           <h2 class="sidebar-title">分类</h2>
           <div class="filter-list">
             <button
-              v-for="tag in tags"
-              :key="tag"
+              v-for="option in tagOptions"
+              :key="option.name"
               type="button"
               class="filter-tag"
-              :class="{ 'is-active': activeTag === tag }"
-              @click="selectTag(tag)"
+              :class="{ 'is-active': activeTag === option.name }"
+              @click="selectTag(option.name)"
             >
-              <span>{{ tag }}</span>
-              <span class="filter-count">{{ countByTag(tag) }}</span>
+              <span>{{ option.name }}</span>
+              <span class="filter-count">{{ option.count }}</span>
             </button>
           </div>
         </aside>
