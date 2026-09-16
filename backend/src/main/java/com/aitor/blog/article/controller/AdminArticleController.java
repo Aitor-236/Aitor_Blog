@@ -1,6 +1,7 @@
 package com.aitor.blog.article.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.aitor.blog.article.dto.ArticleDTO;
 import com.aitor.blog.article.dto.ArticleDeleteResult;
+import com.aitor.blog.article.dto.ArticleDetailVO;
 import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.service.AdminArticleService;
 import com.aitor.blog.common.result.Result;
@@ -37,6 +39,14 @@ public class AdminArticleController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword) {
         return Result.success(adminArticleService.listAll(page, size, category, keyword));
+    }
+
+    /**
+     * 文章详情（含 Markdown 正文），供后台编辑页回显。
+     */
+    @GetMapping("/{id}")
+    public Result<ArticleDetailVO> detail(@PathVariable Long id) {
+        return Result.success(adminArticleService.getArticleDetail(id));
     }
 
     /**

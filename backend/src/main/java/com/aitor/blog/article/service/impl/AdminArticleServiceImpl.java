@@ -7,6 +7,7 @@ import org.springframework.util.StringUtils;
 
 import com.aitor.blog.article.dto.ArticleDTO;
 import com.aitor.blog.article.dto.ArticleDeleteResult;
+import com.aitor.blog.article.dto.ArticleDetailVO;
 import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.entity.Article;
 import com.aitor.blog.article.entity.ArticleCategory;
@@ -14,6 +15,7 @@ import com.aitor.blog.article.mapper.AdminArticleMapper;
 import com.aitor.blog.article.mapper.ArticleCategoryMapper;
 import com.aitor.blog.article.service.AdminArticleService;
 import com.aitor.blog.common.exception.BusinessException;
+import com.aitor.blog.common.utils.PageParam;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,8 @@ public class AdminArticleServiceImpl implements AdminArticleService {
 
     @Override
     public Page<ArticleVO> listAll(long page, long size, String category, String keyword) {
+        size = PageParam.requireValid(page, size);
+
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
                 .orderByDesc(Article::getUpdatedAt);
 
@@ -136,6 +140,19 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     }
 
     @Override
+    public ArticleDetailVO getArticleDetail(Long id) {
+        if (id == null) {
+            throw new BusinessException("文章ID不能为空");
+        }
+
+        Article article = adminArticleMapper.selectById(id);
+        if (article == null) {
+            throw new BusinessException(404, "文章不存在");
+        }
+        return new ArticleDetailVO(article, loadCategory(article.getCategoryId()));
+    }
+
+    @Override
     public ArticleVO publishArticle(Long id) {
         if (id == null) {
             throw new BusinessException("文章ID不能为空");
@@ -220,9 +237,14 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         if (article == null) {
             return null;
         }
-        ArticleCategory category = article.getCategoryId() == null
-                ? null
-                : articleCategoryMapper.selectById(article.getCategoryId());
+        ArticleCategory category = loadCategory(article.getCategoryId());
         return ArticleVO.from(article, category == null ? null : category.getName());
+    }
+
+    /**
+     * 按ID读取分类，分类ID为空或分类已被删除时返回 null。
+     */
+    private ArticleCategory loadCategory(Long categoryId) {
+        return categoryId == null ? null : articleCategoryMapper.selectById(categoryId);
     }
 }

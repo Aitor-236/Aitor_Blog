@@ -2,6 +2,7 @@ package com.aitor.blog.article.service;
 
 import com.aitor.blog.article.dto.ArticleDTO;
 import com.aitor.blog.article.dto.ArticleDeleteResult;
+import com.aitor.blog.article.dto.ArticleDetailVO;
 import com.aitor.blog.article.dto.ArticleVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -19,6 +20,9 @@ public interface AdminArticleService {
 
     /** 局部更新文章，返回更新后的展示对象。 */
     ArticleVO updateArticle(ArticleDTO articleDTO);
+
+    /** 按ID查询文章详情（含正文），供后台编辑页回显。 */
+    ArticleDetailVO getArticleDetail(Long id);
 
     /** 发布文章：写入发布时间并置为已发布，返回发布后的展示对象。 */
     ArticleVO publishArticle(Long id);

@@ -9,6 +9,7 @@ import com.aitor.blog.article.entity.ArticleCategory;
 import com.aitor.blog.article.mapper.ArticleCategoryMapper;
 import com.aitor.blog.article.mapper.ArticleMapper;
 import com.aitor.blog.article.service.ArticleService;
+import com.aitor.blog.common.utils.PageParam;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -26,6 +27,8 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword) {
+        size = PageParam.requireValid(page, size);
+
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
                 .eq(Article::getStatus, STATUS_PUBLISHED)
                 .orderByDesc(Article::getPublishedAt);
