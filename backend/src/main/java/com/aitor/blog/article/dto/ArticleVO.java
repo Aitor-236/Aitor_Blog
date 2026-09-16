@@ -1,6 +1,7 @@
 package com.aitor.blog.article.dto;
 
 import java.time.LocalDateTime;
+import com.aitor.blog.article.entity.Article;
 
 import lombok.Data;
 
@@ -10,6 +11,28 @@ public class ArticleVO {
     private String title;
     private String summary;
     private String categoryName;
+    private String status;
     private LocalDateTime publishedAt;
     private Integer readingMinutes;
+
+    public ArticleVO() {
+    }
+
+    public ArticleVO(Article article) {
+        this.id = article.getId();
+        this.title = article.getTitle();
+        this.summary = article.getSummary();
+        this.status = article.getStatus();
+        this.publishedAt = article.getPublishedAt();
+        this.readingMinutes = article.getReadingMinutes();
+    }
+
+    /**
+     * 由文章实体构建展示对象，分类名称由调用方补充（通常来自关联查询）。
+     */
+    public static ArticleVO from(Article article, String categoryName) {
+        ArticleVO vo = new ArticleVO(article);
+        vo.setCategoryName(categoryName);
+        return vo;
+    }
 }

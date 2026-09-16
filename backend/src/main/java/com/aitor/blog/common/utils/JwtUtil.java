@@ -61,4 +61,18 @@ public class JwtUtil {
             return null;
         }
     }
+
+    /**
+     * Extracts the user ID from the given JWT token.
+     * @param token The JWT token from which to extract the user ID.
+     * @return The user ID extracted from the token, or null if the token is invalid or the userId claim is not present.
+     */
+    public static Long getUserId(String token) {
+        try {
+            DecodedJWT jwt = JWT.decode(token);
+            return jwt.getClaim("userId").asLong();
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
