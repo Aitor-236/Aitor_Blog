@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,6 +14,7 @@ import com.aitor.blog.article.dto.ArticleDeleteResult;
 import com.aitor.blog.article.dto.ArticleDetailVO;
 import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.service.AdminArticleService;
+import com.aitor.blog.common.interceptor.JwtInterceptor;
 import com.aitor.blog.common.result.Result;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -51,10 +53,13 @@ public class AdminArticleController {
 
     /**
      * 新建文章，落库为草稿，返回创建后的文章。
+     * 作者取拦截器写入的登录用户ID，前端不需要也不能指定作者。
      */
     @PostMapping("/create")
-    public Result<ArticleVO> create(@RequestBody ArticleDTO articleDTO) {
-        return Result.success(adminArticleService.createArticle(articleDTO));
+    public Result<ArticleVO> create(
+            @RequestBody ArticleDTO articleDTO,
+            @RequestAttribute(name = JwtInterceptor.REQUEST_ATTRIBUTE_USER_ID, required = false) Long userId) {
+        return Result.success(adminArticleService.createArticle(articleDTO, userId));
     }
 
     /**

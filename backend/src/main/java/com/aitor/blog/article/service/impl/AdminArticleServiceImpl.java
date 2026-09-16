@@ -58,9 +58,12 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     }
 
     @Override
-    public ArticleVO createArticle(ArticleDTO articleDTO) {
+    public ArticleVO createArticle(ArticleDTO articleDTO, Long authorId) {
         if (articleDTO == null || !StringUtils.hasText(articleDTO.getTitle())) {
             throw new BusinessException("文章标题不能为空");
+        }
+        if (authorId == null) {
+            throw new BusinessException("无法获取当前登录用户，请重新登录");
         }
 
         ArticleCategory category = resolveCategory(articleDTO.getCategoryName());
@@ -73,6 +76,8 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         article.setSummary(articleDTO.getSummary());
         article.setContentMarkdown(articleDTO.getContent());
         article.setCategoryId(category.getId());
+        // 作者只认登录态里的用户ID，前端传什么都不影响这里。
+        article.setAuthorId(authorId);
         article.setStatus(STATUS_DRAFT);
 
         LocalDateTime now = LocalDateTime.now();

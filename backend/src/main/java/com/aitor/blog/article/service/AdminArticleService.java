@@ -15,8 +15,13 @@ public interface AdminArticleService {
     /** 后台分页列表：包含草稿和已发布，按最近更新时间倒序。 */
     Page<ArticleVO> listAll(long page, long size, String category, String keyword);
 
-    /** 新建草稿文章，返回创建后的展示对象。 */
-    ArticleVO createArticle(ArticleDTO articleDTO);
+    /**
+     * 新建草稿文章，返回创建后的展示对象。
+     *
+     * @param articleDTO 文章内容，作者由登录态决定，不由前端传入
+     * @param authorId   当前登录用户ID，来自 token
+     */
+    ArticleVO createArticle(ArticleDTO articleDTO, Long authorId);
 
     /** 局部更新文章，返回更新后的展示对象。 */
     ArticleVO updateArticle(ArticleDTO articleDTO);

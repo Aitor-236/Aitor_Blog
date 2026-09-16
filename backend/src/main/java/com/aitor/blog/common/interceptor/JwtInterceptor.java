@@ -12,6 +12,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @RequiredArgsConstructor 
 public class JwtInterceptor implements HandlerInterceptor {
 
+    /** 校验通过后写入 request 的当前登录用户ID属性名，controller 用 @RequestAttribute 取。 */
+    public static final String REQUEST_ATTRIBUTE_USER_ID = "userId";
+
     private final JwtUtil jwtUtil;
 
     @Override 
@@ -28,6 +31,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7); // Remove "Bearer " prefix
             if (jwtUtil.verifyToken(token)) {
+                request.setAttribute(REQUEST_ATTRIBUTE_USER_ID, JwtUtil.getUserId(token));
                 return true; // Token is valid, proceed with the request
             }
         }
