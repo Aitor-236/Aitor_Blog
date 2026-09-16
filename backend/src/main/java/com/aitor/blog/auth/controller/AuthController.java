@@ -3,6 +3,7 @@ package com.aitor.blog.auth.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.aitor.blog.auth.dto.LoginDTO;
+import com.aitor.blog.auth.dto.LoginVO;
 import com.aitor.blog.auth.service.AuthService;
 import com.aitor.blog.common.result.Result;
 import jakarta.validation.Valid;
@@ -20,8 +21,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Result<?> login(@RequestBody @Valid LoginDTO loginDTO) {
-        return authService.login(loginDTO);
+    public Result<LoginVO> login(@RequestBody @Valid LoginDTO loginDTO) {
+        return Result.success(authService.login(loginDTO));
     }
     
 }

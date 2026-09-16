@@ -8,7 +8,7 @@ import com.aitor.blog.auth.dto.LoginVO;
 import com.aitor.blog.auth.entity.SysUser;
 import com.aitor.blog.auth.service.AuthService;
 import com.aitor.blog.auth.mapper.SysUserMapper;
-import com.aitor.blog.common.result.Result;
+import com.aitor.blog.common.exception.BusinessException;
 import com.aitor.blog.common.utils.JwtUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
@@ -25,7 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
 
     @Override
-    public Result<?> login(LoginDTO loginDTO) {
+    public LoginVO login(LoginDTO loginDTO) {
         // get username, email, and password  from loginDTO
         String username = loginDTO.getUsername();
         String email = loginDTO.getEmail();
@@ -38,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
         } else if (email != null && !email.trim().isEmpty()) {
             queryWrapper.eq(SysUser::getEmail, email);
         } else {
-            return Result.error(400, "Username or email must be provided");
+            throw new BusinessException("请输入用户名或邮箱");
         }  
         
         // Fetch user from database
@@ -46,15 +46,14 @@ public class AuthServiceImpl implements AuthService {
 
         // check password
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            return Result.error(500, "Invalid username or password");
+            throw new BusinessException(401, "用户名或密码错误");
         }
 
         // Generate JWT token
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
 
         // Return VO with token and user info
-        LoginVO loginVO = new LoginVO(token, user.getUsername(), user.getEmail());
-        return Result.success(loginVO);
+        return new LoginVO(token, user.getUsername(), user.getEmail());
     }
     
 }
