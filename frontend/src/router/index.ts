@@ -12,6 +12,12 @@ const routes = [
     name: 'Articles',
     component: () => import('@/views/Articles.vue')
   },
+  // 文章详情页，id 对应后端已发布文章ID
+  {
+    path: '/articles/:id',
+    name: 'ArticleDetail',
+    component: () => import('@/views/ArticleDetail.vue')
+  },
   {
     path: '/gallery',
     name: 'Gallery',

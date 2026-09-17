@@ -3,7 +3,8 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-// 底部全局导航配置：每个路由的长度一致
+// 底部全局导航配置：每个路由的长度一致。
+// 登录页（/login）刻意不放进导航，只能手动输入路由访问。
 const navItems = [
   { to: '/', label: '主页', icon: '🏠' },
   { to: '/articles', label: '文章', icon: '📝' },
