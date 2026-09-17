@@ -21,19 +21,30 @@ interface ArtworkItem {
   palette: string[]
 }
 
-function formatDate(value: string) {
-  return value.slice(0, 10)
+function formatDate(value?: string | null) {
+  return value ? value.slice(0, 10) : ''
 }
 
 const latestArticles = ref<ArticleItem[]>([])
+const articlesLoading = ref(true)
+const articlesError = ref('')
 
 async function loadLatestArticles() {
-  const res = (await request.get('/article/list', {
-    params: { page: 1, size: 3 }
-  })) as {
-    data: { records: ArticleItem[] }
+  articlesLoading.value = true
+  articlesError.value = ''
+  try {
+    const res = (await request.get('/article/list', {
+      params: { page: 1, size: 3 }
+    })) as {
+      data: { records: ArticleItem[] }
+    }
+    latestArticles.value = res.data.records
+  } catch {
+    latestArticles.value = []
+    articlesError.value = '文章加载失败，请稍后重试。'
+  } finally {
+    articlesLoading.value = false
   }
-  latestArticles.value = res.data.records
 }
 
 onMounted(loadLatestArticles)
@@ -87,7 +98,17 @@ const latestArtworks = ref<ArtworkItem[]>([
           <router-link class="section-more" to="/articles">更多 ›</router-link>
         </div>
 
-        <div class="card-grid">
+        <div v-if="articlesLoading" class="section-state glass-card">
+          <span aria-hidden="true">⏳</span>
+          <p>正在加载文章…</p>
+        </div>
+
+        <div v-else-if="articlesError" class="section-state glass-card">
+          <span aria-hidden="true">🌧️</span>
+          <p>{{ articlesError }}</p>
+        </div>
+
+        <div v-else-if="latestArticles.length" class="card-grid">
           <article
             v-for="article in latestArticles"
             :key="article.id"
@@ -101,6 +122,11 @@ const latestArtworks = ref<ArtworkItem[]>([
               <span>约 {{ article.readingMinutes }} 分钟</span>
             </footer>
           </article>
+        </div>
+
+        <div v-else class="section-state glass-card">
+          <span aria-hidden="true">🍃</span>
+          <p>还没有已发布的文章。</p>
         </div>
       </section>
 
@@ -257,6 +283,23 @@ const latestArtworks = ref<ArtworkItem[]>([
 
 .content-section {
   margin-top: 44px;
+}
+
+.section-state {
+  padding: 48px 24px;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.section-state span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 34px;
+}
+
+.section-state p {
+  margin: 0;
+  color: rgba(60, 104, 76, 0.72);
 }
 
 .section-header {
