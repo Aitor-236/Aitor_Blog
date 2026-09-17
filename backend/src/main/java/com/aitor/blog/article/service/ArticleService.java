@@ -17,11 +17,11 @@ public interface ArticleService {
     Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword);
 
     /**
-     * 查询已发布文章的详情（含 Markdown 正文）。
+     * 查询单篇已发布文章的详情。
      *
      * @param id 文章ID
-     * @return 公开文章详情
-     * @throws com.aitor.blog.common.exception.BusinessException 文章不存在或不是已发布状态时抛出 404
+     * @return 详情页需要的全部字段
+     * @throws com.aitor.blog.common.exception.BusinessException 文章不存在或未发布时抛出 404
      */
     ArticlePublicDetailVO getPublishedDetail(Long id);
 }

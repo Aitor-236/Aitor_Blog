@@ -1,17 +1,18 @@
 package com.aitor.blog.article.service.impl;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.dto.ArticlePublicDetailVO;
+import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.entity.Article;
 import com.aitor.blog.article.entity.ArticleCategory;
 import com.aitor.blog.article.mapper.ArticleCategoryMapper;
 import com.aitor.blog.article.mapper.ArticleMapper;
+import com.aitor.blog.article.mapper.ArticleTagMapper;
 import com.aitor.blog.article.service.ArticleService;
-import com.aitor.blog.auth.entity.SysUser;
-import com.aitor.blog.auth.mapper.SysUserMapper;
 import com.aitor.blog.common.exception.BusinessException;
 import com.aitor.blog.common.utils.PageParam;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -27,8 +28,8 @@ public class ArticleServiceImpl implements ArticleService {
 
     private final ArticleMapper articleMapper;
     private final ArticleCategoryMapper articleCategoryMapper;
+    private final ArticleTagMapper articleTagMapper;
     private final ArticleVOAssembler articleVOAssembler;
-    private final SysUserMapper sysUserMapper;
 
     @Override
     public Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword) {
@@ -66,25 +67,13 @@ public class ArticleServiceImpl implements ArticleService {
         }
 
         Article article = articleMapper.selectById(id);
-        // 草稿和已下架的文章对前台一律不可见
+        // 草稿和未发布的文章对前台统一表现为"不存在"，避免从错误信息里猜到草稿ID。
         if (article == null || !STATUS_PUBLISHED.equals(article.getStatus())) {
-            throw new BusinessException(404, "文章不存在或未发布");
+            throw new BusinessException(404, "文章不存在");
         }
 
-        ArticleCategory category = article.getCategoryId() == null
-                ? null
-                : articleCategoryMapper.selectById(article.getCategoryId());
-        return new ArticlePublicDetailVO(article, category, loadAuthorUsername(article.getAuthorId()));
-    }
-
-    /**
-     * 读取作者公开名称；用户不存在时返回 null，不影响文章本身展示。
-     */
-    private String loadAuthorUsername(Long authorId) {
-        if (authorId == null) {
-            return null;
-        }
-        SysUser author = sysUserMapper.selectById(authorId);
-        return author == null ? null : author.getUsername();
+        ArticleCategory category = articleCategoryMapper.selectById(article.getCategoryId());
+        List<String> tags = articleTagMapper.selectTagNamesByArticleId(article.getId());
+        return new ArticlePublicDetailVO(article, category, tags);
     }
 }

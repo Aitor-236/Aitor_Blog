@@ -33,7 +33,7 @@ public class ArticleController {
     }
 
     /**
-     * 公开的文章详情，只返回已发布文章，正文为 Markdown 原文。
+     * 公开的文章详情，只暴露已发布文章，草稿一律按不存在处理。
      */
     @GetMapping("/detail/{id}")
     public Result<ArticlePublicDetailVO> detail(@PathVariable Long id) {
