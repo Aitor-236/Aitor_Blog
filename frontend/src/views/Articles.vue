@@ -154,10 +154,22 @@ onMounted(async () => {
         <section class="content-column">
           <!-- 关键词搜索：对应 GET /article/list 的 keyword 参数 -->
           <div class="search-bar glass-card">
+            <svg
+              class="search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.6-3.6" />
+            </svg>
             <input
               v-model="keywordInput"
               class="search-input"
-              type="search"
+              type="text"
               placeholder="搜索文章标题或摘要"
               @keyup.enter="applySearch"
             />
@@ -354,24 +366,46 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  border-radius: 20px;
+  padding: 8px 10px 8px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 14px 34px rgba(91, 154, 110, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-bar:focus-within {
+  border-color: rgba(102, 184, 127, 0.6);
+  box-shadow:
+    0 14px 34px rgba(91, 154, 110, 0.22),
+    0 0 0 3px rgba(140, 203, 159, 0.25);
+}
+
+.search-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #4f9b69;
 }
 
 .search-input {
   flex: 1;
   min-width: 0;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid rgba(102, 184, 127, 0.28);
-  border-radius: 12px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
   color: #2f5c3d;
   font-size: 14px;
   outline: none;
-  background: rgba(255, 255, 255, 0.72);
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  background: transparent;
+  box-shadow: none;
 }
 
 .search-input::placeholder {
@@ -379,8 +413,8 @@ onMounted(async () => {
 }
 
 .search-input:focus {
-  border-color: #66b87f;
-  box-shadow: 0 4px 16px rgba(91, 154, 110, 0.16);
+  border: none;
+  box-shadow: none;
 }
 
 .search-button,
