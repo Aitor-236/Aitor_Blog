@@ -11,12 +11,12 @@ interface ArticleDetail {
   title: string
   summary: string
   content: string
+  categoryId: number | null
   categoryName: string
   categorySlug: string
-  authorUsername: string | null
+  tags: string[]
   readingMinutes: number
   publishedAt: string | null
-  createdAt: string | null
   updatedAt: string | null
 }
 
@@ -91,8 +91,10 @@ watch(
           <span class="card-tag">{{ article.categoryName }}</span>
           <h1>{{ article.title }}</h1>
           <p v-if="article.summary" class="detail-summary">{{ article.summary }}</p>
+          <div v-if="article.tags && article.tags.length" class="detail-tags">
+            <span v-for="tag in article.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+          </div>
           <div class="detail-meta">
-            <span v-if="article.authorUsername">作者：{{ article.authorUsername }}</span>
             <time :datetime="article.publishedAt || undefined">
               {{ formatDate(article.publishedAt) }}
             </time>
@@ -208,10 +210,26 @@ watch(
 }
 
 .detail-summary {
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   color: rgba(60, 104, 76, 0.78);
   font-size: 15px;
   line-height: 1.8;
+}
+
+.detail-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.tag-chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: #4f9b69;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(102, 184, 127, 0.28);
 }
 
 .detail-meta {
