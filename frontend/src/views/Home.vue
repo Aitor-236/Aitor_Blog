@@ -109,10 +109,11 @@ const latestArtworks = ref<ArtworkItem[]>([
         </div>
 
         <div v-else-if="latestArticles.length" class="card-grid">
-          <article
+          <router-link
             v-for="article in latestArticles"
             :key="article.id"
             class="glass-card article-card"
+            :to="`/articles/${article.id}`"
           >
             <span class="card-tag">{{ article.categoryName }}</span>
             <h3>{{ article.title }}</h3>
@@ -121,7 +122,7 @@ const latestArtworks = ref<ArtworkItem[]>([
               <time :datetime="article.publishedAt">{{ formatDate(article.publishedAt) }}</time>
               <span>约 {{ article.readingMinutes }} 分钟</span>
             </footer>
-          </article>
+          </router-link>
         </div>
 
         <div v-else class="section-state glass-card">

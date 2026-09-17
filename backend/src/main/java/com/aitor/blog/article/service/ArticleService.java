@@ -1,6 +1,7 @@
 package com.aitor.blog.article.service;
 
 import com.aitor.blog.article.dto.ArticleVO;
+import com.aitor.blog.article.dto.ArticlePublicDetailVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 public interface ArticleService {
@@ -14,4 +15,13 @@ public interface ArticleService {
      * @return 文章卡片分页结果
      */
     Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword);
+
+    /**
+     * 查询已发布文章的详情（含 Markdown 正文）。
+     *
+     * @param id 文章ID
+     * @return 公开文章详情
+     * @throws com.aitor.blog.common.exception.BusinessException 文章不存在或不是已发布状态时抛出 404
+     */
+    ArticlePublicDetailVO getPublishedDetail(Long id);
 }

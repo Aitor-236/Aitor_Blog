@@ -1,12 +1,14 @@
 package com.aitor.blog.article.controller;
 
 import com.aitor.blog.article.dto.ArticleVO;
+import com.aitor.blog.article.dto.ArticlePublicDetailVO;
 import com.aitor.blog.article.service.ArticleService;
 import com.aitor.blog.common.result.Result;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,5 +30,13 @@ public class ArticleController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String keyword) {
         return Result.success(articleService.listPublished(page, size, category, keyword));
+    }
+
+    /**
+     * 公开的文章详情，只返回已发布文章，正文为 Markdown 原文。
+     */
+    @GetMapping("/detail/{id}")
+    public Result<ArticlePublicDetailVO> detail(@PathVariable Long id) {
+        return Result.success(articleService.getPublishedDetail(id));
     }
 }

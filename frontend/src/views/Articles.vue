@@ -190,10 +190,11 @@ onMounted(async () => {
 
           <!-- 文章列表：数据来自后端文章接口，仅做展示 -->
           <div v-else-if="articles.length" class="article-list">
-            <article
+            <router-link
               v-for="article in articles"
               :key="article.id"
               class="article-item glass-card"
+              :to="`/articles/${article.id}`"
             >
               <div class="article-head">
                 <span class="card-tag">{{ article.categoryName }}</span>
@@ -203,9 +204,8 @@ onMounted(async () => {
               <p>{{ article.summary }}</p>
               <footer class="article-footer">
                 <span>约 {{ article.readingMinutes }} 分钟读完</span>
-                <!-- TODO: 后端提供公开的文章详情接口后，再在这里加入“阅读全文”入口 -->
               </footer>
-            </article>
+            </router-link>
           </div>
 
           <!-- 空状态 -->
@@ -429,13 +429,20 @@ onMounted(async () => {
 }
 
 .article-item {
+  display: block;
   padding: 32px 34px;
   border-radius: 24px;
+  cursor: pointer;
   transition: transform 0.25s ease;
 }
 
 .article-item:hover {
   transform: translateY(-4px);
+}
+
+.article-item:focus-visible {
+  outline: 2px solid #3f9f62;
+  outline-offset: 2px;
 }
 
 .article-head {
