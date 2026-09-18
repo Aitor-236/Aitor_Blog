@@ -15,6 +15,20 @@ const showDock = computed(() => route.path !== '/login' && !route.path.startsWit
 </template>
 
 <style>
+:root {
+  /* 浅色米白 + 棕色：整体主题变量，前台页面统一复用 */
+  --bg-cream: #f6f1e7;
+  --accent-brown: #8a5a3b;
+  --accent-brown-soft: #b98a5e;
+  --text-strong: #3f2e22;
+  --text-body: rgba(74, 54, 41, 0.78);
+  --text-muted: rgba(74, 54, 41, 0.58);
+  --panel-bg: #fffdf9;
+  --panel-alt-bg: #f8f2e7;
+  --panel-border: rgba(138, 90, 59, 0.14);
+  --panel-shadow: 0 18px 44px rgba(120, 88, 58, 0.12);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -27,7 +41,7 @@ body,
 
 body {
   margin: 0;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-family:
     system-ui,
     -apple-system,
@@ -38,7 +52,7 @@ body {
     'Microsoft YaHei',
     sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #eaf7ec;
+  background: var(--bg-cream);
 }
 
 a {

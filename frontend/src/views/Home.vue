@@ -12,20 +12,15 @@ interface ArticleItem {
   readingMinutes: number
 }
 
-/** 画作模拟数据类型 */
-interface ArtworkItem {
-  id: number
-  title: string
-  medium: string
-  date: string
-  palette: string[]
-}
-
 function formatDate(value?: string | null) {
   return value ? value.slice(0, 10) : ''
 }
 
 const latestArticles = ref<ArticleItem[]>([])
+/** 已发布文章总数（来自 GET /article/list 的 total） */
+const articleTotal = ref(0)
+/** 画作数量：画廊页目前用页面内静态数组且为空，后端接口就绪后替换这里 */
+const artworkTotal = ref(0)
 const articlesLoading = ref(true)
 const articlesError = ref('')
 
@@ -36,9 +31,10 @@ async function loadLatestArticles() {
     const res = (await request.get('/article/list', {
       params: { page: 1, size: 3 }
     })) as {
-      data: { records: ArticleItem[] }
+      data: { records: ArticleItem[]; total: number }
     }
     latestArticles.value = res.data.records
+    articleTotal.value = res.data.total ?? res.data.records.length
   } catch {
     latestArticles.value = []
     articlesError.value = '文章加载失败，请稍后重试。'
@@ -48,51 +44,50 @@ async function loadLatestArticles() {
 }
 
 onMounted(loadLatestArticles)
-
-const latestArtworks = ref<ArtworkItem[]>([
-  
-])
 </script>
 
 <template>
   <div class="home-page">
-    <div class="blob blob-1" aria-hidden="true"></div>
-    <div class="blob blob-2" aria-hidden="true"></div>
+    <!-- 上 2/5：主视觉铺满整幅横向区域，不套框 -->
+    <header class="home-hero">
+      <h1 class="hero-title">Welcome to Aitor</h1>
+    </header>
 
-    <main class="home-container">
-      <!-- 顶部欢迎区域 -->
-      <section class="hero glass-card">
-        <p class="hero-eyebrow">欢迎来到我的主页</p>
-        <h1>你好，我是 Aitor 👋</h1>
-        <p class="hero-desc">这里记录我的代码、文字与画，愿每一次创作都被温柔以待。</p>
-        <div class="hero-actions">
-          <router-link class="hero-button primary" to="/articles">阅读文章</router-link>
-          <router-link class="hero-button ghost" to="/gallery">看看画</router-link>
+    <!-- 下 3/5：左侧工具栏 + 右侧主体内容 -->
+    <div class="home-body">
+      <!-- 工具栏：每块小组件各自成一个框，目前先放头像/名字/数据一块 -->
+      <aside class="tool-panel" aria-label="工具栏">
+        <section class="widget-card surface-panel profile-card">
+          <img class="profile-avatar" src="/avatar.svg" alt="Aitor 的头像" />
+          <p class="profile-name">Aitor</p>
+          <dl class="profile-stats">
+            <div class="profile-stat">
+              <dt>文章</dt>
+              <dd>{{ articleTotal }}</dd>
+            </div>
+            <div class="profile-stat">
+              <dt>图片</dt>
+              <dd>{{ artworkTotal }}</dd>
+            </div>
+          </dl>
+        </section>
+      </aside>
+
+      <main class="content-panel">
+        <div v-if="articlesLoading" class="section-state">
+          <span class="state-spinner" aria-hidden="true"></span>
+          <p>正在加载动态…</p>
         </div>
-      </section>
 
-      <!-- 最新文章：来自后端已发布文章接口 -->
-      <section class="content-section">
-        <div class="section-header">
-          <h2>最新文章</h2>
-          <router-link class="section-more" to="/articles">更多 ›</router-link>
-        </div>
-
-        <div v-if="articlesLoading" class="section-state glass-card">
-          <span aria-hidden="true">⏳</span>
-          <p>正在加载文章…</p>
-        </div>
-
-        <div v-else-if="articlesError" class="section-state glass-card">
-          <span aria-hidden="true">🌧️</span>
+        <div v-else-if="articlesError" class="section-state">
           <p>{{ articlesError }}</p>
         </div>
 
-        <div v-else-if="latestArticles.length" class="card-grid">
+        <div v-else-if="latestArticles.length" class="feed-list">
           <router-link
             v-for="article in latestArticles"
             :key="article.id"
-            class="glass-card article-card"
+            class="feed-item"
             :to="`/articles/${article.id}`"
           >
             <span class="card-tag">{{ article.categoryName }}</span>
@@ -105,250 +100,195 @@ const latestArtworks = ref<ArtworkItem[]>([
           </router-link>
         </div>
 
-        <div v-else class="section-state glass-card">
-          <span aria-hidden="true">🍃</span>
-          <p>还没有已发布的文章。</p>
+        <div v-else class="section-state">
+          <p>还没有更新内容。</p>
         </div>
-      </section>
-
-      <!-- 最新画作：先用配色模拟封面，后期替换为真实图片 -->
-      <section class="content-section">
-        <div class="section-header">
-          <h2>最新画作</h2>
-          <router-link class="section-more" to="/gallery">更多 ›</router-link>
-        </div>
-
-        <div class="card-grid">
-          <article
-            v-for="artwork in latestArtworks"
-            :key="artwork.id"
-            class="glass-card artwork-card"
-          >
-            <!-- TODO: 后端提供图片后，将配色渐变封面替换为 <img> 图片 -->
-            <div
-              class="artwork-cover"
-              :style="{
-                background: `linear-gradient(135deg, ${artwork.palette.join(',')})`
-              }"
-              aria-hidden="true"
-            ></div>
-            <h3>{{ artwork.title }}</h3>
-            <p>{{ artwork.medium }}</p>
-            <footer class="card-footer">
-              <time :datetime="artwork.date">{{ artwork.date }}</time>
-            </footer>
-          </article>
-        </div>
-      </section>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .home-page {
-  position: relative;
-  min-height: 100vh;
-  padding: 44px 20px 160px;
-  overflow: hidden;
-  background:
-    radial-gradient(1100px 600px at 15% 10%, rgba(255, 255, 255, 0.7), transparent 60%),
-    linear-gradient(135deg, #eaf7ec 0%, #ddf2e2 45%, #e9f6ec 100%);
+  /* 固定一屏大小的滚动容器：滚动发生在整页上，滚动条暂时隐藏 */
+  height: 100vh;
+  height: 100dvh;
+  padding: 0 0 148px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--bg-cream, #f6f1e7);
 }
 
-.blob {
-  position: fixed;
-  border-radius: 999px;
-  filter: blur(80px);
-  opacity: 0.5;
-  pointer-events: none;
+.home-page::-webkit-scrollbar {
+  display: none;
 }
 
-.blob-1 {
-  top: -140px;
-  left: -100px;
-  width: 380px;
-  height: 380px;
-  background: rgba(153, 218, 172, 0.7);
-}
-
-.blob-2 {
-  right: -120px;
-  bottom: 60px;
-  width: 440px;
-  height: 440px;
-  background: rgba(196, 233, 206, 0.8);
-}
-
-.home-container {
-  position: relative;
-  z-index: 1;
-  width: min(1080px, 100%);
-  margin: 0 auto;
-}
-
-.glass-card {
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow:
-    0 18px 50px rgba(91, 154, 110, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-}
-
-.hero {
-  padding: 52px 36px;
-  border-radius: 28px;
-  text-align: center;
-}
-
-.hero-eyebrow {
-  margin: 0 0 12px;
-  color: #4f9b69;
-  font-size: 14px;
-  letter-spacing: 4px;
-}
-
-.hero h1 {
-  margin: 0 0 14px;
-  color: #2f5c3d;
-  font-size: clamp(28px, 5vw, 44px);
-  font-weight: 700;
-}
-
-.hero-desc {
-  max-width: 560px;
-  margin: 0 auto 28px;
-  color: rgba(60, 104, 76, 0.78);
-  font-size: 16px;
-  line-height: 1.8;
-}
-
-.hero-actions {
+/* 上 2/5：整幅横向铺满的主视觉，不套框、不圆角 */
+.home-hero {
   display: flex;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.hero-button {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 12px;
-  font-size: 15px;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
+  width: 100%;
+  height: 55vh;
+  overflow: hidden;
+  /* 底图 + 统一压暗层（保证白字可读）+ 底部向页面底色过渡 */
+  background-color: #4a3728;
+  background-image:
+    linear-gradient(to bottom, rgba(246, 241, 231, 0) 55%, var(--bg-cream, #f6f1e7) 100%),
+    linear-gradient(rgba(63, 46, 34, 0.55), rgba(63, 46, 34, 0.55)),
+    url('/kaisa.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.hero-button.primary {
+.hero-title {
+  margin: 0;
   color: #ffffff;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 10px 24px rgba(63, 159, 98, 0.28);
+  font-size: clamp(28px, 4.5vw, 52px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-align: center;
+  text-shadow: 0 2px 16px rgba(40, 28, 20, 0.55);
 }
 
-.hero-button.ghost {
-  border: 1px solid rgba(63, 159, 98, 0.35);
-  color: #2f7d4a;
-  background: rgba(255, 255, 255, 0.55);
+.home-body {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: clamp(20px, 2.6vh, 34px) clamp(16px, 3vw, 46px) 0;
+  display: grid;
+  grid-template-columns: minmax(210px, 280px) minmax(0, 1fr);
+  gap: clamp(18px, 2vw, 26px);
+  min-height: 0;
 }
 
-.hero-button:hover {
-  transform: translateY(-2px);
+/* 左侧工具栏里的每块小组件共用这套框样式 */
+.surface-panel {
+  border: 1px solid var(--panel-border, rgba(138, 90, 59, 0.14));
+  border-radius: 26px;
+  background: var(--panel-bg, #fffdf9);
+  box-shadow: var(--panel-shadow, 0 18px 44px rgba(120, 88, 58, 0.12));
 }
 
-.content-section {
-  margin-top: 44px;
+.tool-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
 
-.section-state {
-  padding: 48px 24px;
-  border-radius: 22px;
+/* 第一块内容：头像 + 名字 + 文章/图片数量 */
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px 18px;
   text-align: center;
 }
 
-.section-state span {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 34px;
+.profile-avatar {
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--panel-border, rgba(138, 90, 59, 0.14));
+  border-radius: 50%;
+  background: #f2e8d6;
+  object-fit: cover;
 }
 
-.section-state p {
-  margin: 0;
-  color: rgba(60, 104, 76, 0.72);
+.profile-name {
+  margin: 14px 0 0;
+  color: var(--text-strong, #3f2e22);
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.section-header {
+.profile-stats {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  padding: 0 4px;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(138, 90, 59, 0.14);
 }
 
-.section-header h2 {
-  margin: 0;
-  color: #2f5c3d;
-  font-size: 22px;
-}
-
-.section-more {
-  color: #4f9b69;
-  font-size: 14px;
-  transition: opacity 0.2s ease;
-}
-
-.section-more:hover {
-  opacity: 0.7;
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.article-card,
-.artwork-card {
+.profile-stat {
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  border-radius: 22px;
-  transition: transform 0.25s ease;
+  gap: 4px;
+  margin: 0;
 }
 
-.article-card:hover,
-.artwork-card:hover {
-  transform: translateY(-4px);
+.profile-stat dt {
+  color: var(--text-muted, rgba(74, 54, 41, 0.58));
+  font-size: 12px;
+}
+
+.profile-stat dd {
+  margin: 0;
+  color: var(--text-strong, #3f2e22);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  min-width: 0;
+}
+
+/* 每条动态单独一个框，底色/描边与左侧工具栏框完全一致 */
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.feed-item {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px;
+  border: 1px solid var(--panel-border, rgba(138, 90, 59, 0.14));
+  border-radius: 20px;
+  background: var(--panel-bg, #fffdf9);
+  box-shadow: 0 10px 24px rgba(120, 88, 58, 0.09);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.feed-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(138, 90, 59, 0.34);
+  background: #fbf6ec;
+  box-shadow: 0 16px 32px rgba(120, 88, 58, 0.14);
 }
 
 .card-tag {
   align-self: flex-start;
   padding: 4px 12px;
   border-radius: 999px;
-  color: #2f7d4a;
+  color: #7a5436;
   font-size: 12px;
-  background: rgba(186, 226, 197, 0.65);
+  background: #ecdec5;
 }
 
-.article-card h3,
-.artwork-card h3 {
+.feed-item h3 {
   margin: 14px 0 8px;
-  color: #2f5c3d;
-  font-size: 18px;
+  color: var(--text-strong, #3f2e22);
+  font-size: 17px;
   line-height: 1.5;
 }
 
-.article-card p,
-.artwork-card p {
+.feed-item p {
   margin: 0;
-  color: rgba(60, 104, 76, 0.75);
-  font-size: 14px;
+  color: var(--text-body, rgba(74, 54, 41, 0.78));
+  font-size: 13.5px;
   line-height: 1.75;
 }
 
@@ -358,18 +298,56 @@ const latestArtworks = ref<ArtworkItem[]>([
   justify-content: space-between;
   gap: 10px;
   margin-top: auto;
-  padding-top: 18px;
-  color: rgba(60, 104, 76, 0.6);
-  font-size: 13px;
+  padding-top: 16px;
+  color: var(--text-muted, rgba(74, 54, 41, 0.58));
+  font-size: 12.5px;
 }
 
-.artwork-cover {
-  height: 170px;
-  border-radius: 16px;
-  box-shadow: 0 12px 28px rgba(91, 154, 110, 0.22);
+.section-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  border: 1px dashed rgba(138, 90, 59, 0.22);
+  border-radius: 20px;
+  background: var(--panel-bg, #fffdf9);
+  text-align: center;
 }
 
-.artwork-card h3 {
-  margin-top: 18px;
+.state-spinner {
+  width: 26px;
+  height: 26px;
+  border: 2px solid rgba(138, 90, 59, 0.22);
+  border-top-color: var(--accent-brown, #8a5a3b);
+  border-radius: 50%;
+  animation: state-spin 0.8s linear infinite;
+}
+
+@keyframes state-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.section-state p {
+  margin: 0;
+  color: var(--text-muted, rgba(74, 54, 41, 0.58));
+  font-size: 14px;
+}
+
+@media (max-width: 860px) {
+  .home-page {
+    padding-bottom: 132px;
+  }
+
+  .home-hero {
+    height: 40vh;
+  }
+
+  .home-body {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

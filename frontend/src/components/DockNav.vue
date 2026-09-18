@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { Document, HomeFilled, Picture, User } from '@element-plus/icons-vue'
 
 const route = useRoute()
 
 // 底部全局导航配置：每个路由的长度一致。
 // 登录页（/login）刻意不放进导航，只能手动输入路由访问。
 const navItems = [
-  { to: '/', label: '主页', icon: '🏠' },
-  { to: '/articles', label: '文章', icon: '📝' },
-  { to: '/gallery', label: '画', icon: '🎨' },
-  { to: '/about', label: '个人简介', icon: '👤' }
+  { to: '/', label: '主页', icon: HomeFilled },
+  { to: '/articles', label: '文章', icon: Document },
+  { to: '/gallery', label: '画', icon: Picture },
+  { to: '/about', label: '个人简介', icon: User }
 ]
 
 function isActive(path: string) {
@@ -26,7 +27,9 @@ function isActive(path: string) {
       class="dock-item"
       :class="{ 'is-active': isActive(item.to) }"
     >
-      <span class="dock-icon" aria-hidden="true">{{ item.icon }}</span>
+      <span class="dock-icon" aria-hidden="true">
+        <el-icon><component :is="item.icon" /></el-icon>
+      </span>
       <span class="dock-label">{{ item.label }}</span>
     </router-link>
   </nav>
@@ -42,14 +45,10 @@ function isActive(path: string) {
   gap: 8px;
   padding: 10px;
   transform: translateX(-50%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(138, 90, 59, 0.14);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow:
-    0 18px 45px rgba(91, 154, 110, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: #fffdf9;
+  box-shadow: 0 16px 38px rgba(120, 88, 58, 0.16);
 }
 
 .dock-item {
@@ -61,7 +60,7 @@ function isActive(path: string) {
   height: 70px;
   gap: 5px;
   border-radius: 16px;
-  color: rgba(47, 92, 61, 0.72);
+  color: rgba(74, 54, 41, 0.72);
   transition:
     color 0.25s ease,
     background-color 0.25s ease,
@@ -77,8 +76,7 @@ function isActive(path: string) {
   border-radius: 12px;
   font-size: 20px;
   line-height: 1;
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 6px 16px rgba(91, 154, 110, 0.14);
+  background: var(--panel-alt-bg, #f8f2e7);
   transition: transform 0.25s ease;
 }
 
@@ -88,8 +86,8 @@ function isActive(path: string) {
 }
 
 .dock-item:hover {
-  color: #2f7d4a;
-  background: rgba(255, 255, 255, 0.55);
+  color: #8a5a3b;
+  background: var(--panel-alt-bg, #f8f2e7);
 }
 
 .dock-item:hover .dock-icon {
@@ -97,13 +95,12 @@ function isActive(path: string) {
 }
 
 .dock-item.is-active {
-  color: #1f6b38;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 8px 22px rgba(91, 154, 110, 0.18);
+  color: #5c3a24;
+  background: #f6efe2;
 }
 
 .dock-item.is-active .dock-icon {
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 8px 18px rgba(63, 159, 98, 0.28);
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
+  box-shadow: 0 8px 18px rgba(138, 90, 59, 0.3);
 }
 </style>
