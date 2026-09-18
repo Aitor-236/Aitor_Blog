@@ -1,20 +1,39 @@
 -- ============================================================
--- Aitor Blog：文章模块建表脚本
--- 用途：在现有 blog_db 中新增文章模块相关表，可重复执行。
+-- Aitor Blog：数据库初始化脚本（全新部署用）
+-- 用途：从零创建 blog_db、系统用户表和文章模块全部表，可重复执行。
 -- 前提：
 --   1. MySQL 8+
---   2. blog_db 数据库已存在
---   3. sys_user 表已存在（登录模块创建）
+--   2. 执行账号需要有 CREATE DATABASE 权限
+-- 用法：
+--   mysql -uroot -p < sql/init_database.sql
 -- 说明：
---   - 正文只保存原始 Markdown，由前端负责渲染。
---   - 一篇文章属于一个作者、一个主分类，可关联多个标签。
---   - 使用 CREATE TABLE IF NOT EXISTS，重复执行不会报错。
---   - 本文件用于已有数据库的增量升级；全新部署请直接用 sql/init_database.sql
---     （它包含建库、sys_user 建表和这里的全部内容）。
---   - 表结构变更时，本文件与 init_database.sql 需要同步修改。
+--   - 本脚本不预置任何用户，也不写入任何文章数据。
+--     执行完后请运行 sql/init_account.sh 创建你自己的登录账号。
+--   - 如果数据库已存在、只是要补文章模块的表，用 sql/article_schema.sql。
+--   - 全部使用 CREATE TABLE IF NOT EXISTS，重复执行不会报错，也不会覆盖已有数据。
+--   - 注意：文章模块表结构变更时，本文件与 article_schema.sql 需要同步修改。
 -- ============================================================
 
+CREATE DATABASE IF NOT EXISTS blog_db
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
 USE blog_db;
+
+-- ------------------------------------------------------------
+-- 系统用户表（登录模块使用）
+-- 密码列存 BCrypt 哈希（60 字符，$2b$ 前缀），绝不存明文。
+-- 本表刻意不预置任何账号，部署时由 sql/init_account.sh 创建。
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sys_user (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    email VARCHAR(100) NOT NULL COMMENT '邮箱',
+    password VARCHAR(100) NOT NULL COMMENT '密码（BCrypt 哈希）',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_username (username)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '系统用户表';
 
 -- 文章分类表
 CREATE TABLE IF NOT EXISTS article_category (
