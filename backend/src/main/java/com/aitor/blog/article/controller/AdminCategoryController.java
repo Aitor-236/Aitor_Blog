@@ -1,5 +1,8 @@
 package com.aitor.blog.article.controller;
 
+import java.util.List;
+
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +26,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AdminCategoryController {
 
     private final AdminCategoryService adminCategoryService;
+
+    /**
+     * 后台分类列表，按排序值升序；articleCount 统计全部文章（含草稿），
+     * 与删除校验同一口径，前端据此判断能否删除。
+     */
+    @GetMapping("/list")
+    public Result<List<CategoryVO>> list() {
+        return Result.success(adminCategoryService.listCategories());
+    }
 
     /**
      * 新建分类，英文标识（slug）在表中唯一，重复会返回 400。
