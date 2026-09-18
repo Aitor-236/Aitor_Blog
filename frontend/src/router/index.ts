@@ -78,9 +78,9 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior() {
-    // 切换页面时回到顶部
-    return { top: 0 }
+  scrollBehavior(_to, _from, savedPosition) {
+    // 前进/后退时恢复浏览器记住的滚动位置，普通跳转回到顶部
+    return savedPosition ?? { top: 0 }
   }
 })
 

@@ -1,5 +1,12 @@
+<script lang="ts">
+// 模块级变量：记住离开列表页时的滚动位置，从文章详情返回时用来恢复。
+// 列表内容是接口异步加载的，直接靠浏览器恢复会因高度不够被截断到顶部。
+let savedScrollTop = 0
+</script>
+
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import request from '@/utils/request'
 
 /** 文章卡片类型（来自 GET /article/list） */
@@ -133,6 +140,17 @@ function changePage(next: number) {
 onMounted(async () => {
   await loadCategories()
   await loadArticles()
+  // 列表渲染出来、高度稳定后再恢复滚动位置，没到位就再等一帧重试
+  await nextTick()
+  for (let attempt = 0; attempt < 6 && savedScrollTop > 0; attempt += 1) {
+    window.scrollTo({ top: savedScrollTop })
+    if (Math.abs(window.scrollY - savedScrollTop) < 2) break
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
+  }
+})
+
+onBeforeRouteLeave(() => {
+  savedScrollTop = window.scrollY
 })
 </script>
 

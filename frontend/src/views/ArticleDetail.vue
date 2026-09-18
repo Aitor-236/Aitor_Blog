@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import request from '@/utils/request'
@@ -21,6 +21,7 @@ interface ArticleDetail {
 }
 
 const route = useRoute()
+const router = useRouter()
 const article = ref<ArticleDetail | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -35,6 +36,18 @@ const renderedContent = computed(() => {
 
 function formatDate(value?: string | null) {
   return value ? value.replace('T', ' ').slice(0, 16) : ''
+}
+
+/**
+ * 返回上一页：从首页/列表点进来就退回来源页（并恢复它原来的滚动位置），
+ * 直接打开详情页（没有上一页）时才回退到文章列表。
+ */
+function goBack() {
+  if (window.history.state?.back) {
+    router.back()
+    return
+  }
+  void router.push('/articles')
 }
 
 async function loadArticle(id: string) {
@@ -67,7 +80,7 @@ watch(
   <div class="page-shell">
     <main class="page-container detail-container">
       <div class="back-row">
-        <router-link class="back-link" to="/articles">返回</router-link>
+        <button type="button" class="back-link" @click="goBack">返回</button>
       </div>
 
       <!-- 加载中 -->
@@ -118,9 +131,12 @@ watch(
   display: inline-flex;
   align-items: center;
   padding: 8px 14px;
+  border: none;
   border-radius: 12px;
   color: var(--accent-brown);
   font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
   background: var(--panel-alt-bg);
   transition:
     transform 0.2s ease,

@@ -1,5 +1,12 @@
+<script lang="ts">
+// 模块级变量：记住离开首页时的滚动位置，从文章详情返回时用来恢复。
+// 首页的滚动发生在 .home-page 这个整屏容器里，浏览器/路由的 savedPosition 管不到它。
+let savedScrollTop = 0
+</script>
+
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import request from '@/utils/request'
 
 /** 文章卡片类型（来自 GET /article/list） */
@@ -23,6 +30,8 @@ const articleTotal = ref(0)
 const artworkTotal = ref(0)
 const articlesLoading = ref(true)
 const articlesError = ref('')
+/** 整屏滚动容器，用来保存 / 恢复滚动位置 */
+const pageRef = ref<HTMLElement | null>(null)
 
 async function loadLatestArticles() {
   articlesLoading.value = true
@@ -43,11 +52,27 @@ async function loadLatestArticles() {
   }
 }
 
-onMounted(loadLatestArticles)
+onMounted(async () => {
+  await loadLatestArticles()
+  // 文章渲染完成后恢复滚动位置；内容高度可能还要再稳定一两帧，
+ await nextTick()
+  // 所以设置后校验一次，没到位就再等一帧重试，避免被截断到较小的值
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const el = pageRef.value
+    if (!el || savedScrollTop <= 0) break
+    el.scrollTop = savedScrollTop
+    if (Math.abs(el.scrollTop - savedScrollTop) < 2) break
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)))
+  }
+})
+
+onBeforeRouteLeave(() => {
+  savedScrollTop = pageRef.value?.scrollTop ?? 0
+})
 </script>
 
 <template>
-  <div class="home-page">
+  <div ref="pageRef" class="home-page">
     <!-- 上 2/5：主视觉铺满整幅横向区域，不套框 -->
     <header class="home-hero">
       <h1 class="hero-title">Welcome to Aitor</h1>
@@ -336,6 +361,12 @@ onMounted(loadLatestArticles)
 
   .home-hero {
     height: 40vh;
+  }
+
+  /* 窗口不够宽就整栏隐藏工具栏，不把它挪到内容上方：
+     工具栏以后会有多个小组件，堆在内容前面会一直挤占首屏 */
+  .tool-panel {
+    display: none;
   }
 
   .home-body {
