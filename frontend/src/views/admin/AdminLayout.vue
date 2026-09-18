@@ -26,13 +26,13 @@ const navGroups: NavGroup[] = [
     title: '内容管理',
     items: [
       { label: '文章列表', icon: '📝', to: '/admin/articles' },
-      { label: '新建文章', icon: '✍️', to: '/admin/articles/new' }
+      { label: '新建文章', icon: '✍️', to: '/admin/articles/new' },
+      { label: '分类管理', icon: '🏷️', to: '/admin/categories' }
     ]
   },
   {
     title: '预留功能',
     items: [
-      { label: '分类管理', icon: '🏷️', disabled: true },
       { label: '评论管理', icon: '💬', disabled: true },
       { label: '用户管理', icon: '👥', disabled: true }
     ]

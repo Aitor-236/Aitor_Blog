@@ -1,6 +1,10 @@
 package com.aitor.blog.article.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -13,6 +17,7 @@ import com.aitor.blog.article.mapper.ArticleMapper;
 import com.aitor.blog.article.service.AdminCategoryService;
 import com.aitor.blog.common.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,8 +28,27 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     /** 新增分类时排序值的步长，保持与预置分类（10/20/30...）一致的间距。 */
     private static final int SORT_ORDER_STEP = 10;
 
+    /** name / slug 列都是 VARCHAR(50)，超长直接给 400，避免数据库截断异常变成 500。 */
+    private static final int TEXT_MAX_LENGTH = 50;
+
     private final ArticleCategoryMapper articleCategoryMapper;
     private final ArticleMapper articleMapper;
+
+    @Override
+    public List<CategoryVO> listCategories() {
+        List<ArticleCategory> categories = articleCategoryMapper.selectList(
+                new LambdaQueryWrapper<ArticleCategory>()
+                        .orderByAsc(ArticleCategory::getSortOrder)
+                        .orderByAsc(ArticleCategory::getId));
+
+        Map<Long, Long> countByCategoryId = loadArticleCountByCategoryId();
+
+        return categories.stream()
+                .map(category -> toCategoryVO(
+                        category,
+                        countByCategoryId.getOrDefault(category.getId(), 0L)))
+                .collect(Collectors.toList());
+    }
 
     @Override
     public CategoryVO createCategory(String categoryName, String categoryIdentifier) {
@@ -32,8 +56,8 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
             throw new BusinessException("分类名称和英文标识均不能为空");
         }
 
-        String name = categoryName.trim();
-        String slug = categoryIdentifier.trim();
+        String name = requireWithinLength(categoryName.trim(), "分类名称");
+        String slug = requireWithinLength(categoryIdentifier.trim(), "分类英文标识");
         if (existsSlug(slug, null)) {
             throw new BusinessException("分类英文标识已存在");
         }
@@ -62,10 +86,10 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         ArticleCategory category = new ArticleCategory();
         category.setId(existing.getId());
         if (StringUtils.hasText(categoryName)) {
-            category.setName(categoryName.trim());
+            category.setName(requireWithinLength(categoryName.trim(), "分类名称"));
         }
         if (StringUtils.hasText(categoryIdentifier)) {
-            String slug = categoryIdentifier.trim();
+            String slug = requireWithinLength(categoryIdentifier.trim(), "分类英文标识");
             if (existsSlug(slug, existing.getId())) {
                 throw new BusinessException("分类英文标识已存在");
             }
@@ -104,6 +128,38 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
             wrapper.ne(ArticleCategory::getId, excludeId);
         }
         return articleCategoryMapper.selectCount(wrapper) > 0;
+    }
+
+    /**
+     * 校验文本长度，超过列长度就报 400。
+     */
+    private String requireWithinLength(String value, String fieldName) {
+        if (value.length() > TEXT_MAX_LENGTH) {
+            throw new BusinessException(fieldName + "不能超过 " + TEXT_MAX_LENGTH + " 个字符");
+        }
+        return value;
+    }
+
+    /**
+     * 统计每个分类下的全部文章数（草稿也计入），一次查询供后台列表使用。
+     */
+    private Map<Long, Long> loadArticleCountByCategoryId() {
+        List<Map<String, Object>> rows = articleMapper.selectMaps(
+                new QueryWrapper<Article>()
+                        .select("category_id", "COUNT(*) AS article_count")
+                        .groupBy("category_id"));
+
+        Map<Long, Long> counts = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object categoryId = row.get("category_id");
+            Object articleCount = row.get("article_count");
+            if (categoryId instanceof Number && articleCount instanceof Number) {
+                counts.put(
+                        ((Number) categoryId).longValue(),
+                        ((Number) articleCount).longValue());
+            }
+        }
+        return counts;
     }
 
     /**
