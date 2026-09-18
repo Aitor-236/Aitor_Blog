@@ -27,7 +27,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: '文章列表', icon: '📝', to: '/admin/articles' },
       { label: '新建文章', icon: '✍️', to: '/admin/articles/new' },
-      { label: '分类管理', icon: '🏷️', to: '/admin/categories' }
+      { label: '分类管理', icon: '🏷️', to: '/admin/categories' },
+      { label: '标签管理', icon: '🔖', to: '/admin/tags' }
     ]
   },
   {
