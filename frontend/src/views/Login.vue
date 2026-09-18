@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import request from '@/utils/request'
 
@@ -13,6 +13,7 @@ interface LoginResult {
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const router = useRouter()
+const route = useRoute()
 
 const loginForm = reactive({
   account: '',
@@ -51,8 +52,9 @@ async function handleLogin() {
     }
 
     ElMessage.success(`登录成功，欢迎回来，${response.data.username}`)
-    // 目前还没有管理员页面，登录成功后先回到公开主页
-    void router.push('/')
+    // 登录的是管理员账号，直接进后台；被拦截时回到原本要去的后台页面
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
+    void router.push(redirect || '/admin')
   } catch (error: any) {
     console.error('登录失败:', error)
   } finally {

@@ -33,14 +33,16 @@ public class AdminArticleController {
 
     /**
      * 管理员的文章卡片分页列表，草稿和已发布都会返回，按最近更新时间倒序。
+     * status 可选，取值 draft / published，不传表示草稿和已发布都要。
      */
     @GetMapping("/list")
     public Result<Page<ArticleVO>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword) {
-        return Result.success(adminArticleService.listAll(page, size, category, keyword));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status) {
+        return Result.success(adminArticleService.listAll(page, size, category, keyword, status));
     }
 
     /**
@@ -86,6 +88,14 @@ public class AdminArticleController {
     @PostMapping("/publish")
     public Result<ArticleVO> publish(@RequestParam Long id) {
         return Result.success(adminArticleService.publishArticle(id));
+    }
+
+    /**
+     * 取消发布文章：把已发布的文章回退为草稿，内容保留，已发布过的文章重复调用不做改动。
+     */
+    @PostMapping("/unpublish")
+    public Result<ArticleVO> unpublish(@RequestParam Long id) {
+        return Result.success(adminArticleService.unpublishArticle(id));
     }
 
     /**

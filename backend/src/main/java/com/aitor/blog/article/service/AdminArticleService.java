@@ -12,8 +12,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
  */
 public interface AdminArticleService {
 
-    /** 后台分页列表：包含草稿和已发布，按最近更新时间倒序。 */
-    Page<ArticleVO> listAll(long page, long size, String category, String keyword);
+    /**
+     * 后台分页列表：包含草稿和已发布，按最近更新时间倒序。
+     *
+     * @param status 可选的状态筛选，取值 draft / published，其它值视为不筛选
+     */
+    Page<ArticleVO> listAll(long page, long size, String category, String keyword, String status);
 
     /**
      * 新建草稿文章，返回创建后的展示对象。
@@ -31,6 +35,9 @@ public interface AdminArticleService {
 
     /** 发布文章：写入发布时间并置为已发布，返回发布后的展示对象。 */
     ArticleVO publishArticle(Long id);
+
+    /** 取消发布：把已发布的文章回退为草稿，返回回退后的展示对象。 */
+    ArticleVO unpublishArticle(Long id);
 
     /** 已发布文章取消发布、草稿文章物理删除，返回本次实际动作。 */
     ArticleDeleteResult deleteArticle(Long id);

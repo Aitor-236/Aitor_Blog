@@ -5,8 +5,8 @@ import DockNav from '@/components/DockNav.vue'
 
 const route = useRoute()
 
-// 登录页作为独立入口，不显示全局底部导航
-const showDock = computed(() => route.path !== '/login')
+// 登录页和后台管理都有独立布局，不显示前台底部导航
+const showDock = computed(() => route.path !== '/login' && !route.path.startsWith('/admin'))
 </script>
 
 <template>

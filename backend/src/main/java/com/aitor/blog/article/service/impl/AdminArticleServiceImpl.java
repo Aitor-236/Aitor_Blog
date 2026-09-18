@@ -17,6 +17,7 @@ import com.aitor.blog.article.service.AdminArticleService;
 import com.aitor.blog.common.exception.BusinessException;
 import com.aitor.blog.common.utils.PageParam;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 
@@ -32,11 +33,19 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     private final ArticleVOAssembler articleVOAssembler;
 
     @Override
-    public Page<ArticleVO> listAll(long page, long size, String category, String keyword) {
+    public Page<ArticleVO> listAll(long page, long size, String category, String keyword, String status) {
         size = PageParam.requireValid(page, size);
 
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
                 .orderByDesc(Article::getUpdatedAt);
+
+        // 状态筛选只认 draft / published，其它值按"不筛选"处理，避免前端传空串时报错。
+        if (StringUtils.hasText(status)) {
+            String normalizedStatus = status.trim().toLowerCase();
+            if (STATUS_DRAFT.equals(normalizedStatus) || STATUS_PUBLISHED.equals(normalizedStatus)) {
+                wrapper.eq(Article::getStatus, normalizedStatus);
+            }
+        }
 
         if (StringUtils.hasText(category)) {
             ArticleCategory matched = resolveCategory(category);
@@ -190,6 +199,27 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     }
 
     @Override
+    public ArticleVO unpublishArticle(Long id) {
+        if (id == null) {
+            throw new BusinessException("文章ID不能为空");
+        }
+
+        Article existing = adminArticleMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException(404, "文章不存在");
+        }
+        // 已经是草稿的不重复动作，避免刷新更新时间把草稿顶到列表最前面。
+        if (STATUS_DRAFT.equals(existing.getStatus())) {
+            return loadArticleVO(id);
+        }
+
+        // 草稿不应该带发布时间，这里显式把 published_at 置空，重新发布时再写入新时间。
+        markAsDraft(existing.getId());
+
+        return loadArticleVO(id);
+    }
+
+    @Override
     public ArticleDeleteResult deleteArticle(Long id) {
         if (id == null) {
             throw new BusinessException("文章ID不能为空");
@@ -202,11 +232,7 @@ public class AdminArticleServiceImpl implements AdminArticleService {
 
         // 已发布的文章不允许物理删除，先取消发布回退为草稿。
         if (STATUS_PUBLISHED.equals(existing.getStatus())) {
-            Article article = new Article();
-            article.setId(existing.getId());
-            article.setStatus(STATUS_DRAFT);
-            article.setUpdatedAt(LocalDateTime.now());
-            adminArticleMapper.updateById(article);
+            markAsDraft(existing.getId());
             return ArticleDeleteResult.UNPUBLISHED;
         }
 
@@ -232,6 +258,18 @@ public class AdminArticleServiceImpl implements AdminArticleService {
 
         // 关联的 article_tag 由外键 ON DELETE CASCADE 清理。
         adminArticleMapper.deleteById(id);
+    }
+
+    /**
+     * 把文章回退为草稿：状态改回 draft，同时清空 published_at
+     * （实体更新默认忽略 null 字段，所以这里用 UpdateWrapper 显式写 NULL）。
+     */
+    private void markAsDraft(Long id) {
+        adminArticleMapper.update(null, new LambdaUpdateWrapper<Article>()
+                .eq(Article::getId, id)
+                .set(Article::getStatus, STATUS_DRAFT)
+                .set(Article::getPublishedAt, null)
+                .set(Article::getUpdatedAt, LocalDateTime.now()));
     }
 
     /**
