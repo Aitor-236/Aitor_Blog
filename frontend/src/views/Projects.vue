@@ -3,5 +3,5 @@ import ComingSoon from '@/components/ComingSoon.vue'
 </script>
 
 <template>
-  <ComingSoon title="画" />
+  <ComingSoon title="开源项目" />
 </template>

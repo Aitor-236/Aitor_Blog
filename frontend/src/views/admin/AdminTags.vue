@@ -270,7 +270,6 @@ onMounted(loadTags)
 
         <template #empty>
           <div class="admin-state">
-            <span class="admin-state-icon" aria-hidden="true">🔖</span>
             <p>当前筛选下还没有标签，先建一个吧？</p>
             <el-button type="primary" @click="openCreate">新建标签</el-button>
           </div>
@@ -350,7 +349,7 @@ onMounted(loadTags)
 .search-icon {
   width: 16px;
   height: 16px;
-  color: #4f9b69;
+  color: var(--accent-brown);
 }
 
 .search-button {
@@ -366,18 +365,18 @@ onMounted(loadTags)
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
-  color: rgba(47, 92, 61, 0.86);
+  color: #7a5436;
   font-size: 13px;
-  background: rgba(186, 226, 197, 0.5);
+  background: #ecdec5;
 }
 
 .tag-count {
-  color: rgba(60, 104, 76, 0.8);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .time-text {
-  color: rgba(60, 104, 76, 0.7);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -394,11 +393,11 @@ onMounted(loadTags)
 /* 弹窗和后台面板保持同一套圆角/底色，不额外引入新风格 */
 :deep(.el-dialog) {
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--panel-bg);
 }
 
 :deep(.el-dialog__title) {
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-weight: 600;
 }
 </style>

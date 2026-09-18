@@ -65,11 +65,7 @@ async function handleLogin() {
 
 <template>
   <div class="login-page">
-    <div class="blob blob-1" aria-hidden="true"></div>
-    <div class="blob blob-2" aria-hidden="true"></div>
-    <div class="blob blob-3" aria-hidden="true"></div>
-
-    <main class="login-card">
+    <main class="login-card surface-panel">
       <div class="login-header">
         <div class="logo">A</div>
         <h1>登录 Aitor Blog</h1>
@@ -107,79 +103,28 @@ async function handleLogin() {
   </div>
 </template>
 
-<style>
-body {
-  margin: 0;
-  min-width: 320px;
-}
-</style>
-
 <style scoped>
 .login-page {
-  --el-color-primary: #66b87f;
-  --el-color-primary-light-3: #8bcd9f;
-  --el-color-primary-light-5: #aeddbd;
-  --el-color-primary-light-7: #d0ecd8;
-  --el-color-primary-light-8: #e2f4e7;
-  --el-color-primary-light-9: #f1faf4;
-  --el-color-primary-dark-2: #519d68;
+  --el-color-primary: #8a5a3b;
+  --el-color-primary-light-3: #b98a5e;
+  --el-color-primary-light-5: #cfa986;
+  --el-color-primary-light-7: #e2cbaf;
+  --el-color-primary-light-8: #ecdcc6;
+  --el-color-primary-light-9: #f4ebdd;
+  --el-color-primary-dark-2: #6f4730;
 
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
   padding: 24px;
-  overflow: hidden;
-  background:
-    radial-gradient(1100px 600px at 15% 10%, rgba(255, 255, 255, 0.7), transparent 60%),
-    linear-gradient(135deg, #eaf7ec 0%, #ddf2e2 45%, #e9f6ec 100%);
-}
-
-.blob {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(80px);
-  opacity: 0.55;
-}
-
-.blob-1 {
-  top: -140px;
-  left: -100px;
-  width: 380px;
-  height: 380px;
-  background: rgba(153, 218, 172, 0.75);
-}
-
-.blob-2 {
-  right: -120px;
-  bottom: -160px;
-  width: 440px;
-  height: 440px;
-  background: rgba(196, 233, 206, 0.8);
-}
-
-.blob-3 {
-  top: 38%;
-  right: 18%;
-  width: 220px;
-  height: 220px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-cream);
 }
 
 .login-card {
-  position: relative;
-  z-index: 1;
   width: min(420px, 100%);
   padding: 40px 38px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow:
-    0 18px 50px rgba(91, 154, 110, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
 }
 
 .login-header {
@@ -195,23 +140,23 @@ body {
   height: 60px;
   margin: 0 auto 18px;
   border-radius: 18px;
-  color: #ffffff;
+  color: #fdf9f2;
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 10px 24px rgba(63, 159, 98, 0.32);
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
+  box-shadow: 0 10px 24px rgba(138, 90, 59, 0.3);
 }
 
 .login-header h1 {
   margin: 0 0 8px;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 24px;
   font-weight: 600;
 }
 
 .login-header p {
   margin: 0;
-  color: rgba(60, 104, 76, 0.72);
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -221,16 +166,16 @@ body {
 
 .login-card :deep(.el-input__wrapper) {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--panel-alt-bg);
   box-shadow:
-    0 0 0 1px rgba(102, 184, 127, 0.28) inset,
-    0 4px 14px rgba(91, 154, 110, 0.08);
+    0 0 0 1px rgba(138, 90, 59, 0.24) inset,
+    0 4px 14px rgba(120, 88, 58, 0.08);
 }
 
 .login-card :deep(.el-input__wrapper.is-focus) {
   box-shadow:
     0 0 0 1px var(--el-color-primary) inset,
-    0 4px 16px rgba(91, 154, 110, 0.16);
+    0 4px 16px rgba(120, 88, 58, 0.16);
 }
 
 .login-button {
@@ -241,12 +186,12 @@ body {
   border-radius: 12px;
   font-size: 16px;
   letter-spacing: 8px;
-  box-shadow: 0 10px 24px rgba(63, 159, 98, 0.28);
+  box-shadow: 0 10px 24px rgba(138, 90, 59, 0.26);
 }
 
 .login-footer {
   margin: 22px 0 0;
-  color: rgba(60, 104, 76, 0.6);
+  color: var(--text-muted);
   font-size: 13px;
   text-align: center;
 }

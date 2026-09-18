@@ -1,12 +1,13 @@
 /* Aitor Blog 后台通用样式，配合 AdminLayout 的左侧导航使用。
-   类名统一以 admin-page / admin-panel / admin-state 打头，只在后台页面里用。 */
+   类名统一以 admin-page / admin-panel / admin-state 打头，只在后台页面里用。
+   配色跟随 App.vue 的 :root token（米白 + 棕色），不要在这里写死新颜色。 */
 
 .admin-page {
   display: flex;
   flex-direction: column;
   gap: 18px;
   min-height: 100%;
-  color: #2f5c3d;
+  color: var(--text-strong);
 }
 
 .admin-page-header {
@@ -20,14 +21,14 @@
 
 .admin-page-title {
   margin: 0 0 6px;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 24px;
   font-weight: 600;
 }
 
 .admin-page-subtitle {
   margin: 0;
-  color: rgba(60, 104, 76, 0.68);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -38,33 +39,23 @@
 }
 
 .admin-panel {
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--panel-border);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.42);
-  box-shadow:
-    0 18px 45px rgba(91, 154, 110, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
 }
 
 .admin-state {
   padding: 46px 20px;
-  color: rgba(60, 104, 76, 0.68);
+  color: var(--text-muted);
   text-align: center;
-}
-
-.admin-state-icon {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 34px;
 }
 
 .admin-state p {
   margin: 0 0 14px;
 }
 
-/* ---------- 后台里的 Element Plus 浅薄荷风格 ---------- */
+/* ---------- 后台里的 Element Plus 棕色风格 ---------- */
 
 .admin-page .el-button {
   border-radius: 12px;
@@ -72,43 +63,43 @@
 
 .admin-page .el-button--primary {
   border: none;
-  box-shadow: 0 10px 22px rgba(63, 159, 98, 0.24);
+  box-shadow: 0 10px 22px rgba(138, 90, 59, 0.24);
 }
 
 .admin-page .el-button--default {
-  color: #2f7d4a;
-  border-color: rgba(102, 184, 127, 0.32);
-  background: rgba(255, 255, 255, 0.7);
+  color: var(--accent-brown);
+  border-color: rgba(138, 90, 59, 0.32);
+  background: var(--panel-bg);
 }
 
 .admin-page .el-button--default:hover,
 .admin-page .el-button--default:focus {
-  color: #2f7d4a;
-  border-color: rgba(102, 184, 127, 0.55);
-  background: #ffffff;
+  color: var(--accent-brown);
+  border-color: rgba(138, 90, 59, 0.55);
+  background: #fbf6ec;
 }
 
 .admin-page .el-input__wrapper,
 .admin-page .el-select__wrapper {
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--panel-alt-bg);
   box-shadow:
-    0 0 0 1px rgba(102, 184, 127, 0.24) inset,
-    0 4px 14px rgba(91, 154, 110, 0.08);
+    0 0 0 1px rgba(138, 90, 59, 0.24) inset,
+    0 4px 14px rgba(120, 88, 58, 0.08);
 }
 
 .admin-page .el-input__wrapper.is-focus,
 .admin-page .el-select__wrapper.is-focused {
   box-shadow:
     0 0 0 1px var(--el-color-primary) inset,
-    0 4px 16px rgba(91, 154, 110, 0.16);
+    0 4px 16px rgba(120, 88, 58, 0.16);
 }
 
 .admin-page .el-textarea__inner {
   border-radius: 14px;
-  color: #2f5c3d;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 0 0 1px rgba(102, 184, 127, 0.24) inset;
+  color: var(--text-strong);
+  background: var(--panel-alt-bg);
+  box-shadow: 0 0 0 1px rgba(138, 90, 59, 0.24) inset;
 }
 
 .admin-page .el-textarea__inner:focus {
@@ -116,23 +107,23 @@
 }
 
 .admin-page .el-form-item__label {
-  color: rgba(60, 104, 76, 0.82);
+  color: var(--text-body);
 }
 
 .admin-page .el-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
-  --el-table-header-bg-color: rgba(255, 255, 255, 0.5);
-  --el-table-row-hover-bg-color: rgba(255, 255, 255, 0.66);
-  --el-table-border-color: rgba(102, 184, 127, 0.16);
-  --el-table-text-color: #2f5c3d;
-  --el-table-header-text-color: rgba(60, 104, 76, 0.72);
+  --el-table-header-bg-color: var(--panel-alt-bg);
+  --el-table-row-hover-bg-color: #fbf6ec;
+  --el-table-border-color: rgba(138, 90, 59, 0.16);
+  --el-table-text-color: var(--text-strong);
+  --el-table-header-text-color: var(--text-muted);
 
   background: transparent;
 }
 
 .admin-page .el-table__inner-wrapper::before {
-  background-color: rgba(102, 184, 127, 0.16);
+  background-color: rgba(138, 90, 59, 0.16);
 }
 
 .admin-page .el-table th.el-table__cell {
@@ -145,20 +136,20 @@
 
 .admin-page .el-pagination {
   justify-content: center;
-  --el-pagination-bg-color: rgba(255, 255, 255, 0.55);
-  --el-pagination-text-color: rgba(47, 92, 61, 0.8);
-  --el-pagination-button-color: rgba(47, 92, 61, 0.8);
+  --el-pagination-bg-color: var(--panel-alt-bg);
+  --el-pagination-text-color: var(--text-body);
+  --el-pagination-button-color: var(--text-body);
 }
 
 .admin-page .el-pagination button,
 .admin-page .el-pager li {
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--panel-alt-bg);
 }
 
 .admin-page .el-pager li.is-active {
-  color: #ffffff;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
+  color: #fdf9f2;
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
 }
 
 .admin-page .el-tag {

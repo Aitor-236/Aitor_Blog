@@ -376,7 +376,6 @@ onMounted(async () => {
 
         <template #empty>
           <div class="admin-state">
-            <span class="admin-state-icon" aria-hidden="true">🗂️</span>
             <p>当前筛选下还没有文章，写一篇试试？</p>
             <el-button type="primary" @click="goCreate">新建文章</el-button>
           </div>
@@ -426,7 +425,7 @@ onMounted(async () => {
 .search-icon {
   width: 16px;
   height: 16px;
-  color: #4f9b69;
+  color: var(--accent-brown);
 }
 
 .search-button {
@@ -447,7 +446,7 @@ onMounted(async () => {
 
 .article-title {
   margin: 0;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 15px;
   font-weight: 600;
 }
@@ -456,7 +455,7 @@ onMounted(async () => {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
-  color: rgba(60, 104, 76, 0.66);
+  color: var(--text-muted);
   font-size: 13px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -466,13 +465,13 @@ onMounted(async () => {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 999px;
-  color: rgba(47, 92, 61, 0.82);
+  color: #7a5436;
   font-size: 12px;
-  background: rgba(186, 226, 197, 0.5);
+  background: #ecdec5;
 }
 
 .time-text {
-  color: rgba(60, 104, 76, 0.7);
+  color: var(--text-muted);
   font-size: 13px;
 }
 

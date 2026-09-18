@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { Document, HomeFilled, Picture, User } from '@element-plus/icons-vue'
+import { Collection, Document, HomeFilled, Picture, User } from '@element-plus/icons-vue'
 
 const route = useRoute()
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/', label: '主页', icon: HomeFilled },
   { to: '/articles', label: '文章', icon: Document },
   { to: '/gallery', label: '画', icon: Picture },
+  { to: '/projects', label: '开源项目', icon: Collection },
   { to: '/about', label: '个人简介', icon: User }
 ]
 
@@ -43,6 +44,7 @@ function isActive(path: string) {
   z-index: 100;
   display: flex;
   gap: 8px;
+  max-width: calc(100vw - 24px);
   padding: 10px;
   transform: translateX(-50%);
   border: 1px solid rgba(138, 90, 59, 0.14);
@@ -102,5 +104,22 @@ function isActive(path: string) {
 .dock-item.is-active .dock-icon {
   background: linear-gradient(135deg, #b98a5e, #8a5a3b);
   box-shadow: 0 8px 18px rgba(138, 90, 59, 0.3);
+}
+
+/* 前台导航项变多后，窄屏改成等分自适应，避免溢出 */
+@media (max-width: 640px) {
+  .dock {
+    width: calc(100% - 24px);
+  }
+
+  .dock-item {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .dock-label {
+    font-size: 11px;
+  }
 }
 </style>

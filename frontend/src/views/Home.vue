@@ -164,14 +164,6 @@ onMounted(loadLatestArticles)
   min-height: 0;
 }
 
-/* 左侧工具栏里的每块小组件共用这套框样式 */
-.surface-panel {
-  border: 1px solid var(--panel-border, rgba(138, 90, 59, 0.14));
-  border-radius: 26px;
-  background: var(--panel-bg, #fffdf9);
-  box-shadow: var(--panel-shadow, 0 18px 44px rgba(120, 88, 58, 0.12));
-}
-
 .tool-panel {
   display: flex;
   flex-direction: column;

@@ -64,29 +64,25 @@ watch(
 </script>
 
 <template>
-  <div class="detail-page">
-    <div class="blob blob-1" aria-hidden="true"></div>
-    <div class="blob blob-2" aria-hidden="true"></div>
-
-    <main class="detail-container">
+  <div class="page-shell">
+    <main class="page-container detail-container">
       <div class="back-row">
         <router-link class="back-link" to="/articles">返回</router-link>
       </div>
 
       <!-- 加载中 -->
-      <div v-if="loading" class="state-card glass-card">
-        <span aria-hidden="true">⏳</span>
+      <div v-if="loading" class="state-card">
+        <span class="state-spinner" aria-hidden="true"></span>
         <p>正在加载文章…</p>
       </div>
 
       <!-- 加载失败或文章不可见 -->
-      <div v-else-if="errorMessage" class="state-card glass-card">
-        <span aria-hidden="true">🌧️</span>
+      <div v-else-if="errorMessage" class="state-card">
         <p>{{ errorMessage }}</p>
         <router-link class="state-link" to="/articles">去看看其它文章</router-link>
       </div>
 
-      <article v-else-if="article" class="article-detail glass-card">
+      <article v-else-if="article" class="article-detail surface-panel">
         <header class="detail-header">
           <span class="card-tag">{{ article.categoryName }}</span>
           <h1>{{ article.title }}</h1>
@@ -110,55 +106,8 @@ watch(
 </template>
 
 <style scoped>
-.detail-page {
-  position: relative;
-  min-height: 100vh;
-  padding: 44px 20px 160px;
-  overflow: clip;
-  background:
-    radial-gradient(1100px 600px at 15% 10%, rgba(255, 255, 255, 0.7), transparent 60%),
-    linear-gradient(135deg, #eaf7ec 0%, #ddf2e2 45%, #e9f6ec 100%);
-}
-
-.blob {
-  position: fixed;
-  border-radius: 999px;
-  filter: blur(80px);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.blob-1 {
-  top: -140px;
-  left: -100px;
-  width: 380px;
-  height: 380px;
-  background: rgba(153, 218, 172, 0.7);
-}
-
-.blob-2 {
-  right: -120px;
-  bottom: 60px;
-  width: 440px;
-  height: 440px;
-  background: rgba(196, 233, 206, 0.8);
-}
-
 .detail-container {
-  position: relative;
-  z-index: 1;
   width: min(860px, 100%);
-  margin: 0 auto;
-}
-
-.glass-card {
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.38);
-  box-shadow:
-    0 18px 50px rgba(91, 154, 110, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
 }
 
 .back-row {
@@ -168,11 +117,11 @@ watch(
 .back-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 12px;
-  color: #2f7d4a;
+  color: var(--accent-brown);
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--panel-alt-bg);
   transition:
     transform 0.2s ease,
     background-color 0.2s ease;
@@ -180,7 +129,7 @@ watch(
 
 .back-link:hover {
   transform: translateX(-2px);
-  background: rgba(255, 255, 255, 0.85);
+  background: #fbf6ec;
 }
 
 .article-detail {
@@ -190,28 +139,28 @@ watch(
 
 .detail-header {
   padding-bottom: 26px;
-  border-bottom: 1px solid rgba(102, 184, 127, 0.24);
+  border-bottom: 1px solid rgba(138, 90, 59, 0.16);
 }
 
 .card-tag {
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
-  color: #2f7d4a;
+  color: #7a5436;
   font-size: 12px;
-  background: rgba(186, 226, 197, 0.65);
+  background: #ecdec5;
 }
 
 .detail-header h1 {
   margin: 18px 0 12px;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: clamp(26px, 4vw, 36px);
   line-height: 1.4;
 }
 
 .detail-summary {
   margin: 0 0 16px;
-  color: rgba(60, 104, 76, 0.78);
+  color: var(--text-body);
   font-size: 15px;
   line-height: 1.8;
 }
@@ -226,10 +175,10 @@ watch(
 .tag-chip {
   padding: 3px 12px;
   border-radius: 999px;
-  color: #4f9b69;
+  color: var(--accent-brown);
   font-size: 12px;
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(102, 184, 127, 0.28);
+  background: var(--panel-alt-bg);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 59, 0.22);
 }
 
 .detail-meta {
@@ -237,13 +186,13 @@ watch(
   align-items: center;
   gap: 18px;
   flex-wrap: wrap;
-  color: rgba(60, 104, 76, 0.6);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .markdown-body {
   margin-top: 28px;
-  color: rgba(47, 92, 61, 0.92);
+  color: var(--text-body);
   font-size: 16px;
   line-height: 1.9;
   word-break: break-word;
@@ -254,13 +203,13 @@ watch(
 .markdown-body :deep(h3),
 .markdown-body :deep(h4) {
   margin: 32px 0 14px;
-  color: #2f5c3d;
+  color: var(--text-strong);
   line-height: 1.4;
 }
 
 .markdown-body :deep(h2) {
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(102, 184, 127, 0.24);
+  border-bottom: 1px solid rgba(138, 90, 59, 0.18);
   font-size: 22px;
 }
 
@@ -273,7 +222,7 @@ watch(
 }
 
 .markdown-body :deep(a) {
-  color: #3f9f62;
+  color: var(--accent-brown);
   text-decoration: underline;
 }
 
@@ -290,10 +239,10 @@ watch(
 .markdown-body :deep(blockquote) {
   margin: 0 0 18px;
   padding: 12px 18px;
-  border-left: 4px solid #8ccb9f;
+  border-left: 4px solid var(--accent-brown-soft);
   border-radius: 0 12px 12px 0;
-  color: rgba(47, 92, 61, 0.8);
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-body);
+  background: var(--panel-alt-bg);
 }
 
 .markdown-body :deep(code) {
@@ -301,7 +250,7 @@ watch(
   border-radius: 6px;
   font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
   font-size: 14px;
-  background: rgba(186, 226, 197, 0.45);
+  background: rgba(138, 90, 59, 0.12);
 }
 
 .markdown-body :deep(pre) {
@@ -309,20 +258,20 @@ watch(
   padding: 18px 20px;
   border-radius: 16px;
   overflow-x: auto;
-  background: rgba(47, 92, 61, 0.92);
-  box-shadow: 0 12px 26px rgba(47, 92, 61, 0.18);
+  background: #3f2e22;
+  box-shadow: 0 12px 26px rgba(63, 46, 34, 0.18);
 }
 
 .markdown-body :deep(pre code) {
   padding: 0;
-  color: #eaf7ec;
+  color: #f6f1e7;
   background: transparent;
 }
 
 .markdown-body :deep(img) {
   max-width: 100%;
   border-radius: 16px;
-  box-shadow: 0 12px 28px rgba(91, 154, 110, 0.2);
+  box-shadow: 0 12px 28px rgba(120, 88, 58, 0.2);
 }
 
 .markdown-body :deep(table) {
@@ -335,45 +284,60 @@ watch(
 .markdown-body :deep(th),
 .markdown-body :deep(td) {
   padding: 10px 12px;
-  border: 1px solid rgba(102, 184, 127, 0.3);
+  border: 1px solid rgba(138, 90, 59, 0.22);
   text-align: left;
 }
 
 .markdown-body :deep(th) {
-  background: rgba(186, 226, 197, 0.45);
+  background: var(--panel-alt-bg);
 }
 
 .markdown-body :deep(hr) {
   margin: 28px 0;
   border: none;
-  border-top: 1px solid rgba(102, 184, 127, 0.3);
+  border-top: 1px solid rgba(138, 90, 59, 0.22);
 }
 
 .state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   padding: 64px 24px;
+  border: 1px dashed rgba(138, 90, 59, 0.22);
   border-radius: 28px;
+  background: var(--panel-bg);
   text-align: center;
 }
 
-.state-card span {
-  display: block;
-  margin-bottom: 12px;
-  font-size: 40px;
+.state-spinner {
+  width: 26px;
+  height: 26px;
+  border: 2px solid rgba(138, 90, 59, 0.22);
+  border-top-color: var(--accent-brown);
+  border-radius: 50%;
+  animation: state-spin 0.8s linear infinite;
+}
+
+@keyframes state-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .state-card p {
   margin: 0 0 18px;
-  color: rgba(60, 104, 76, 0.72);
+  color: var(--text-muted);
 }
 
 .state-link {
   display: inline-flex;
   padding: 9px 18px;
   border-radius: 12px;
-  color: #ffffff;
+  color: #fdf9f2;
   font-size: 14px;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 8px 18px rgba(63, 159, 98, 0.24);
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
+  box-shadow: 0 8px 18px rgba(138, 90, 59, 0.24);
 }
 
 @media (max-width: 720px) {

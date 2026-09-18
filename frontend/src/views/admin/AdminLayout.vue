@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { CollectionTag, Document, EditPen, Folder, User } from '@element-plus/icons-vue'
 import '@/styles/admin.css'
 
 /** 左侧导航的一项，to 为空或 disabled 表示功能还没做，只占位不可点。 */
 interface NavItem {
   label: string
-  icon: string
+  icon: Component
   to?: string
   disabled?: boolean
 }
@@ -25,16 +26,16 @@ const navGroups: NavGroup[] = [
   {
     title: '内容管理',
     items: [
-      { label: '文章列表', icon: '📝', to: '/admin/articles' },
-      { label: '新建文章', icon: '✍️', to: '/admin/articles/new' },
-      { label: '分类管理', icon: '🏷️', to: '/admin/categories' },
-      { label: '标签管理', icon: '🔖', to: '/admin/tags' }
+      { label: '文章列表', icon: Document, to: '/admin/articles' },
+      { label: '新建文章', icon: EditPen, to: '/admin/articles/new' },
+      { label: '分类管理', icon: Folder, to: '/admin/categories' },
+      { label: '标签管理', icon: CollectionTag, to: '/admin/tags' }
     ]
   },
   {
     title: '预留功能',
     items: [
-      { label: '用户管理', icon: '👥', disabled: true }
+      { label: '用户管理', icon: User, disabled: true }
     ]
   }
 ]
@@ -79,9 +80,6 @@ async function handleLogout() {
 
 <template>
   <div class="admin-shell">
-    <div class="blob blob-1" aria-hidden="true"></div>
-    <div class="blob blob-2" aria-hidden="true"></div>
-
     <aside class="admin-sidebar">
       <div class="brand">
         <div class="brand-logo">A</div>
@@ -102,12 +100,16 @@ async function handleLogout() {
               class="nav-item"
               :class="{ 'is-active': isActive(item) }"
             >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <span class="nav-icon" aria-hidden="true">
+                <el-icon><component :is="item.icon" /></el-icon>
+              </span>
               <span class="nav-label">{{ item.label }}</span>
             </router-link>
 
             <span v-else class="nav-item is-disabled" aria-disabled="true">
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <span class="nav-icon" aria-hidden="true">
+                <el-icon><component :is="item.icon" /></el-icon>
+              </span>
               <span class="nav-label">{{ item.label }}</span>
               <span class="nav-badge">开发中</span>
             </span>
@@ -138,68 +140,35 @@ async function handleLogout() {
 
 <style scoped>
 .admin-shell {
-  --el-color-primary: #66b87f;
-  --el-color-primary-light-3: #8bcd9f;
-  --el-color-primary-light-5: #aeddbd;
-  --el-color-primary-light-7: #d0ecd8;
-  --el-color-primary-light-8: #e2f4e7;
-  --el-color-primary-light-9: #f1faf4;
-  --el-color-primary-dark-2: #519d68;
+  --el-color-primary: #8a5a3b;
+  --el-color-primary-light-3: #b98a5e;
+  --el-color-primary-light-5: #cfa986;
+  --el-color-primary-light-7: #e2cbaf;
+  --el-color-primary-light-8: #ecdcc6;
+  --el-color-primary-light-9: #f4ebdd;
+  --el-color-primary-dark-2: #6f4730;
 
-  position: relative;
   display: flex;
   gap: 20px;
   min-height: 100vh;
   padding: 20px;
   overflow-x: hidden;
-  background:
-    radial-gradient(1100px 600px at 12% 8%, rgba(255, 255, 255, 0.7), transparent 60%),
-    linear-gradient(135deg, #eaf7ec 0%, #ddf2e2 45%, #e9f6ec 100%);
-}
-
-.blob {
-  position: absolute;
-  z-index: 0;
-  border-radius: 999px;
-  filter: blur(80px);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.blob-1 {
-  top: -160px;
-  left: -120px;
-  width: 380px;
-  height: 380px;
-  background: rgba(153, 218, 172, 0.75);
-}
-
-.blob-2 {
-  right: -140px;
-  bottom: -180px;
-  width: 440px;
-  height: 440px;
-  background: rgba(196, 233, 206, 0.8);
+  background: var(--bg-cream);
 }
 
 .admin-sidebar {
   position: sticky;
   top: 20px;
-  z-index: 1;
   display: flex;
   flex: 0 0 236px;
   flex-direction: column;
   align-self: flex-start;
   height: calc(100vh - 40px);
   padding: 22px 16px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  border: 1px solid var(--panel-border);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow:
-    0 18px 50px rgba(91, 154, 110, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
 }
 
 .brand {
@@ -207,7 +176,7 @@ async function handleLogout() {
   align-items: center;
   gap: 12px;
   padding: 0 6px 20px;
-  border-bottom: 1px solid rgba(102, 184, 127, 0.18);
+  border-bottom: 1px solid rgba(138, 90, 59, 0.16);
 }
 
 .brand-logo {
@@ -217,11 +186,11 @@ async function handleLogout() {
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  color: #ffffff;
+  color: #fdf9f2;
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 10px 22px rgba(63, 159, 98, 0.3);
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
+  box-shadow: 0 10px 22px rgba(138, 90, 59, 0.28);
 }
 
 .brand-text {
@@ -231,13 +200,13 @@ async function handleLogout() {
 }
 
 .brand-text strong {
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 15px;
   font-weight: 600;
 }
 
 .brand-text span {
-  color: rgba(60, 104, 76, 0.62);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
@@ -259,7 +228,7 @@ async function handleLogout() {
 .nav-group-title {
   margin: 0;
   padding: 0 10px;
-  color: rgba(60, 104, 76, 0.55);
+  color: var(--text-muted);
   font-size: 12px;
   letter-spacing: 2px;
 }
@@ -270,9 +239,9 @@ async function handleLogout() {
   gap: 10px;
   padding: 11px 12px;
   border-radius: 14px;
-  color: rgba(47, 92, 61, 0.78);
+  color: var(--text-body);
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.42);
+  background: var(--panel-alt-bg);
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
@@ -280,24 +249,26 @@ async function handleLogout() {
 }
 
 .nav-item:hover {
-  color: #2f7d4a;
-  background: rgba(255, 255, 255, 0.82);
+  color: var(--accent-brown);
+  background: #fbf6ec;
 }
 
 .nav-item.is-active {
-  color: #ffffff;
-  background: linear-gradient(135deg, #6bc487, #3f9f62);
-  box-shadow: 0 10px 22px rgba(63, 159, 98, 0.26);
+  color: #fdf9f2;
+  background: linear-gradient(135deg, #b98a5e, #8a5a3b);
+  box-shadow: 0 10px 22px rgba(138, 90, 59, 0.24);
 }
 
 .nav-item.is-disabled {
-  color: rgba(60, 104, 76, 0.42);
-  background: rgba(255, 255, 255, 0.24);
+  color: rgba(74, 54, 41, 0.4);
+  background: rgba(248, 242, 231, 0.6);
   cursor: not-allowed;
 }
 
 .nav-icon {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
 }
 
 .nav-label {
@@ -307,14 +278,14 @@ async function handleLogout() {
 .nav-badge {
   padding: 1px 8px;
   border-radius: 999px;
-  color: rgba(60, 104, 76, 0.6);
+  color: var(--text-muted);
   font-size: 11px;
-  background: rgba(186, 226, 197, 0.5);
+  background: #ecdec5;
 }
 
 .sidebar-footer {
   padding-top: 16px;
-  border-top: 1px solid rgba(102, 184, 127, 0.18);
+  border-top: 1px solid rgba(138, 90, 59, 0.16);
 }
 
 .account {
@@ -331,15 +302,15 @@ async function handleLogout() {
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  color: #ffffff;
+  color: #fdf9f2;
   font-size: 14px;
   font-weight: 600;
-  background: linear-gradient(135deg, #8bcd9f, #59ab74);
+  background: linear-gradient(135deg, #cfa986, #8a5a3b);
 }
 
 .account-name {
   overflow: hidden;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -355,19 +326,19 @@ async function handleLogout() {
   padding: 8px 0;
   border: none;
   border-radius: 12px;
-  color: rgba(47, 92, 61, 0.78);
+  color: var(--text-body);
   font-size: 12px;
   text-align: center;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--panel-alt-bg);
   transition:
     color 0.2s ease,
     background-color 0.2s ease;
 }
 
 .footer-link:hover {
-  color: #2f7d4a;
-  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent-brown);
+  background: #fbf6ec;
 }
 
 .footer-link.is-danger:hover {
@@ -375,8 +346,6 @@ async function handleLogout() {
 }
 
 .admin-main {
-  position: relative;
-  z-index: 1;
   flex: 1;
   min-width: 0;
   padding-bottom: 12px;

@@ -59,4 +59,28 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* ---------- 前台通用外壳与框样式 ---------- */
+/* 各页面直接复用这三个类，不要再各自复制一份；后台用的是 styles/admin.css */
+
+/* 页面外壳：实色底 + 给底部悬浮导航留出空间 */
+.page-shell {
+  min-height: 100vh;
+  padding: 44px 20px 160px;
+  background: var(--bg-cream);
+}
+
+/* 内容版心 */
+.page-container {
+  width: min(1080px, 100%);
+  margin: 0 auto;
+}
+
+/* 框：实色底 + 描边 + 圆角 + 投影，每块内容只有一层 */
+.surface-panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 26px;
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+}
 </style>

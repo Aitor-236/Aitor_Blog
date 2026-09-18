@@ -445,34 +445,34 @@ onMounted(async () => {
 .panel-header h2,
 .meta-panel h2 {
   margin: 0;
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-size: 16px;
   font-weight: 600;
 }
 
 .panel-meta {
-  color: rgba(60, 104, 76, 0.6);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .markdown-body {
   max-height: 60vh;
   overflow-y: auto;
-  color: rgba(47, 92, 61, 0.9);
+  color: var(--text-body);
   font-size: 14px;
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
 
 .markdown-body :deep(.preview-placeholder) {
-  color: rgba(60, 104, 76, 0.45);
+  color: var(--text-muted);
 }
 
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
 .markdown-body :deep(h3) {
   margin: 18px 0 10px;
-  color: #2f5c3d;
+  color: var(--text-strong);
   line-height: 1.4;
 }
 
@@ -501,17 +501,17 @@ onMounted(async () => {
 .markdown-body :deep(blockquote) {
   margin: 0 0 12px;
   padding: 8px 14px;
-  border-left: 3px solid rgba(102, 184, 127, 0.6);
+  border-left: 3px solid var(--accent-brown-soft);
   border-radius: 0 12px 12px 0;
-  color: rgba(47, 92, 61, 0.8);
-  background: rgba(255, 255, 255, 0.55);
+  color: var(--text-body);
+  background: var(--panel-alt-bg);
 }
 
 .markdown-body :deep(code) {
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 13px;
-  background: rgba(186, 226, 197, 0.45);
+  background: rgba(138, 90, 59, 0.12);
 }
 
 .markdown-body :deep(pre) {
@@ -519,7 +519,7 @@ onMounted(async () => {
   padding: 14px;
   overflow-x: auto;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(138, 90, 59, 0.1);
 }
 
 .markdown-body :deep(pre code) {
@@ -547,12 +547,12 @@ onMounted(async () => {
 }
 
 .meta-list dt {
-  color: rgba(60, 104, 76, 0.62);
+  color: var(--text-muted);
 }
 
 .meta-list dd {
   margin: 0;
-  color: #2f5c3d;
+  color: var(--text-strong);
 }
 
 @media (max-width: 1200px) {

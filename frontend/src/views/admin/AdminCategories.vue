@@ -193,7 +193,6 @@ onMounted(loadCategories)
 
         <template #empty>
           <div class="admin-state">
-            <span class="admin-state-icon" aria-hidden="true">🏷️</span>
             <p>还没有分类，先建一个吧？</p>
             <el-button type="primary" @click="openCreate">新建分类</el-button>
           </div>
@@ -256,22 +255,22 @@ onMounted(loadCategories)
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
-  color: rgba(47, 92, 61, 0.86);
+  color: #7a5436;
   font-size: 13px;
-  background: rgba(186, 226, 197, 0.5);
+  background: #ecdec5;
 }
 
 .category-slug {
   padding: 2px 8px;
   border-radius: 8px;
-  color: rgba(47, 92, 61, 0.78);
+  color: var(--text-body);
   font-size: 12px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--panel-alt-bg);
 }
 
 .category-count {
-  color: rgba(60, 104, 76, 0.8);
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -283,7 +282,7 @@ onMounted(loadCategories)
 
 .form-tip {
   margin: 6px 0 0;
-  color: rgba(60, 104, 76, 0.62);
+  color: var(--text-muted);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -291,11 +290,11 @@ onMounted(loadCategories)
 /* 弹窗和后台面板保持同一套圆角/底色，不额外引入新风格 */
 :deep(.el-dialog) {
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--panel-bg);
 }
 
 :deep(.el-dialog__title) {
-  color: #2f5c3d;
+  color: var(--text-strong);
   font-weight: 600;
 }
 </style>
