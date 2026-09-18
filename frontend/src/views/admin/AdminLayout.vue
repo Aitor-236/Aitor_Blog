@@ -34,7 +34,6 @@ const navGroups: NavGroup[] = [
   {
     title: '预留功能',
     items: [
-      { label: '评论管理', icon: '💬', disabled: true },
       { label: '用户管理', icon: '👥', disabled: true }
     ]
   }

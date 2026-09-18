@@ -50,27 +50,7 @@ async function loadLatestArticles() {
 onMounted(loadLatestArticles)
 
 const latestArtworks = ref<ArtworkItem[]>([
-  {
-    id: 1,
-    title: '庭院晨光',
-    medium: '水彩 · 纸上',
-    date: '2026-09-01',
-    palette: ['#dff3e2', '#8ccb9f', '#4f9b69']
-  },
-  {
-    id: 2,
-    title: '窗边的绿植',
-    medium: '数码插画',
-    date: '2026-08-20',
-    palette: ['#e8f6ea', '#a5d9b2', '#6bb17f']
-  },
-  {
-    id: 3,
-    title: '雨后小路',
-    medium: '钢笔淡彩',
-    date: '2026-08-06',
-    palette: ['#f4f8e8', '#8fbf9c', '#547a63']
-  }
+  
 ])
 </script>
 

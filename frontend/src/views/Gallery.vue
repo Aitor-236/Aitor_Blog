@@ -13,58 +13,11 @@ interface ArtworkItem {
 
 // TODO: 后端接口就绪后，将 artworks 初始模拟数据替换为接口返回数据
 const artworks = ref<ArtworkItem[]>([
-  {
-    id: 1,
-    title: '庭院晨光',
-    medium: '水彩 · 纸上',
-    date: '2026-09-01',
-    category: '水彩',
-    palette: ['#dff3e2', '#8ccb9f', '#4f9b69']
-  },
-  {
-    id: 2,
-    title: '窗边的绿植',
-    medium: '数码插画',
-    date: '2026-08-20',
-    category: '数码插画',
-    palette: ['#e8f6ea', '#a5d9b2', '#6bb17f']
-  },
-  {
-    id: 3,
-    title: '雨后小路',
-    medium: '钢笔淡彩',
-    date: '2026-08-06',
-    category: '速写',
-    palette: ['#f4f8e8', '#8fbf9c', '#547a63']
-  },
-  {
-    id: 4,
-    title: '海边的白色房子',
-    medium: '水彩 · 纸上',
-    date: '2026-07-18',
-    category: '水彩',
-    palette: ['#eaf8f3', '#9fd3c2', '#5c9c88']
-  },
-  {
-    id: 5,
-    title: '秋天的第一片落叶',
-    medium: '速写 · 钢笔淡彩',
-    date: '2026-06-29',
-    category: '速写',
-    palette: ['#f9efdf', '#d8c07f', '#8a7a4d']
-  },
-  {
-    id: 6,
-    title: '月光下的远山',
-    medium: '数码插画',
-    date: '2026-06-05',
-    category: '数码插画',
-    palette: ['#e8eef4', '#a9bfcf', '#556f7f']
-  }
+  
 ])
 
 // 画作媒介分类：目前先在前端筛选模拟数据
-const artTags = ['全部', '水彩', '数码插画', '速写']
+const artTags = ['全部']
 const activeTag = ref('全部')
 
 const filteredArtworks = computed(() => {
