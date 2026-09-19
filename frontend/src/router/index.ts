@@ -70,6 +70,11 @@ const routes = [
         path: 'tags',
         name: 'AdminTags',
         component: () => import('@/views/admin/AdminTags.vue')
+      },
+      {
+        path: 'profile',
+        name: 'AdminProfile',
+        component: () => import('@/views/admin/AdminProfile.vue')
       }
     ]
   }

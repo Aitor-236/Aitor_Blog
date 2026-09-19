@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @Slf4j 
 @RestControllerAdvice
@@ -56,6 +57,17 @@ public class GlobalExceptionHandler {
     public Result<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         log.warn("Unreadable request body: {}", ex.getMessage());
         return Result.error(400, "请求体格式不正确");
+    }
+
+    /**
+     * Handle an uploaded file larger than the configured multipart limit.
+     * @param ex the MaxUploadSizeExceededException thrown by the multipart resolver
+     * @return a Result object with code 400
+     */
+    @ExceptionHandler (MaxUploadSizeExceededException.class)
+    public Result<Void> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        log.warn("Uploaded file is too large: {}", ex.getMessage());
+        return Result.error(400, "上传的图片过大，头像不能超过 5MB");
     }
 
     @ExceptionHandler (Exception.class)

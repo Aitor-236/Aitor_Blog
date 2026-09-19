@@ -1,9 +1,19 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CollectionTag, Document, EditPen, Folder, User } from '@element-plus/icons-vue'
 import '@/styles/admin.css'
+import request from '@/utils/request'
+
+/** 个人资料（来自 GET /admin/user/profile），用于侧栏账号区块 */
+interface ProfileInfo {
+  id: number
+  username: string
+  email: string
+  /** 头像相对地址，空字符串表示还没设置过头像 */
+  avatar: string
+}
 
 /** 左侧导航的一项，to 为空或 disabled 表示功能还没做，只占位不可点。 */
 interface NavItem {
@@ -33,6 +43,10 @@ const navGroups: NavGroup[] = [
     ]
   },
   {
+    title: '个人管理',
+    items: [{ label: '个人资料', icon: User, to: '/admin/profile' }]
+  },
+  {
     title: '预留功能',
     items: [
       { label: '用户管理', icon: User, disabled: true }
@@ -43,8 +57,35 @@ const navGroups: NavGroup[] = [
 const route = useRoute()
 const router = useRouter()
 
-const username = computed(() => localStorage.getItem('username') || '管理员')
+/** 先用 localStorage 里的值渲染，进页面后再用接口返回的资料刷新 */
+const username = ref(localStorage.getItem('username') || '管理员')
+const avatar = ref('')
 const avatarText = computed(() => username.value.trim().charAt(0).toUpperCase() || 'A')
+const avatarUrl = computed(() => (avatar.value ? `/api${avatar.value}` : ''))
+
+async function loadAccount() {
+  try {
+    const res = (await request.get('/admin/user/profile')) as { data: ProfileInfo }
+    username.value = res.data.username || username.value
+    avatar.value = res.data.avatar || ''
+    localStorage.setItem('username', res.data.username)
+    if (res.data.email) {
+      localStorage.setItem('email', res.data.email)
+    }
+  } catch {
+    // 错误提示由 request 拦截器统一处理，侧栏继续用 localStorage 里的值
+  }
+}
+
+onMounted(() => {
+  void loadAccount()
+  // 个人管理页保存成功后广播，侧栏跟着换名字/头像
+  window.addEventListener('profile-updated', loadAccount)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('profile-updated', loadAccount)
+})
 
 function isActive(item: NavItem) {
   if (!item.to) return false
@@ -119,7 +160,10 @@ async function handleLogout() {
 
       <div class="sidebar-footer">
         <div class="account">
-          <span class="account-avatar">{{ avatarText }}</span>
+          <span class="account-avatar">
+            <img v-if="avatarUrl" :src="avatarUrl" alt="头像" />
+            <template v-else>{{ avatarText }}</template>
+          </span>
           <span class="account-name">{{ username }}</span>
         </div>
 
@@ -301,11 +345,19 @@ async function handleLogout() {
   justify-content: center;
   width: 30px;
   height: 30px;
+  overflow: hidden;
   border-radius: 10px;
   color: #fdf9f2;
   font-size: 14px;
   font-weight: 600;
   background: linear-gradient(135deg, #cfa986, #8a5a3b);
+}
+
+.account-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .account-name {

@@ -27,7 +27,7 @@ Aitor_Blog/
 ├── frontend/                     # Vue 3 前端
 │   └── src/
 │       ├── views/                # 前台页面：Home / Articles / ArticleDetail / Gallery / About / Login
-│       ├── views/admin/          # 后台页面：文章、分类、标签 + AdminLayout
+│       ├── views/admin/          # 后台页面：文章、分类、标签、个人管理 + AdminLayout
 │       ├── components/DockNav.vue
 │       ├── router/index.ts
 │       └── utils/request.ts      # axios 实例（baseURL = /api）
@@ -124,6 +124,7 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 | `jwt.secret-key` | 同上 | HS256 签名密钥，生产环境务必替换 |
 | `jwt.expire-time` | 同上 | token 有效期（毫秒），模板默认 24 小时 |
 | `server.port` | `backend/src/main/resources/application.yml` | 后端端口，默认 8080 |
+| `blog.upload.dir` | 同上 | 上传文件（当前只有头像）的落盘目录，默认 `./uploads`，相对后端运行目录 |
 | `/api` 代理目标 | `frontend/vite.config.ts` | 开发环境的后端地址，默认 `http://localhost:8080` |
 
 ## 接口一览
@@ -138,6 +139,8 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 | GET | `/article/list` | 已发布文章列表，支持 `page` / `size` / `category`（分类 slug）/ `keyword` |
 | GET | `/article/detail/{id}` | 文章详情，含 Markdown 正文和标签 |
 | GET | `/category/list` | 分类列表，`articleCount` 只统计已发布文章 |
+| GET | `/site/owner` | 站长的用户名和头像（角色最高的账号，前台首页展示用，不含邮箱） |
+| GET | `/uploads/**` | 上传的静态资源（头像），由后端直接托管，不在鉴权白名单里 |
 
 后台接口（需要 `Authorization: Bearer <token>`）：
 
@@ -153,6 +156,9 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 | POST | `/admin/article/force-delete` | 物理删除，仅允许删除草稿 |
 | GET / POST | `/admin/category/list`、`/create`、`/update`、`/delete` | 分类管理 |
 | GET / POST | `/admin/tag/list`、`/create`、`/update`、`/delete` | 标签管理 |
+| GET | `/admin/user/profile` | 个人管理：当前登录用户的用户名 / 邮箱 / 头像 |
+| POST | `/admin/user/profile/update` | 修改用户名或邮箱，只更新传入的字段，重名或格式错误返回 400 |
+| POST | `/admin/user/avatar` | 上传头像（multipart，字段名 `file`，≤ 5MB，png / jpg / webp / gif） |
 
 写操作统一使用 POST（项目里没有使用 PUT / DELETE 动词）。
 
@@ -160,7 +166,7 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 
 | 表 | 说明 |
 | --- | --- |
-| `sys_user` | 登录用户：`id` / `username`（唯一）/ `email` / `password`（BCrypt）/ `avatar`（头像地址，默认空）/ `create_time` |
+| `sys_user` | 登录用户：`id` / `username`（唯一）/ `email` / `password`（BCrypt）/ `avatar`（头像地址，默认空）/ `role`（owner-站长、admin-管理员、user-普通用户）/ `create_time` |
 | `article_category` | 文章分类：`name` / `slug`（唯一）/ `sort_order`，脚本预置前端、后端、绘画、生活四条 |
 | `tag` | 标签：`name`（唯一） |
 | `article` | 文章主表：`title` / `summary` / `content_markdown` / `status`(draft, published) / `published_at` / `reading_minutes` |
@@ -197,6 +203,7 @@ npm run format              # Prettier 格式化
 ## 说明与待办
 
 - 画廊页（`/gallery`）和个人简介页（`/about`）目前是页面内静态数据，等后端接口就绪后再替换。
-- 目前没有角色 / 权限模型：后台接口只校验"是否登录"，任何登录用户都能进入后台。
+- `sys_user.role` 目前只用来决定前台首页展示谁：优先级 `owner > admin > user`，同优先级取 `id` 最小的（最早注册的账号）。权限还没做，后台接口仍然只校验"是否登录"，任何登录用户都能进后台。升/降站长直接改这一列即可，例如 `UPDATE sys_user SET role = 'owner' WHERE username = 'xxx';`。
 - `article.author_id` 对齐 `sys_user.id` 使用**有符号** BIGINT，文章模块其余主键是 BIGINT UNSIGNED，新增外键列时注意类型不要写错。
+- 头像图片存放在 `blog.upload.dir`（默认 `backend/uploads/avatar/`，已加入 `.gitignore`），数据库只存 `/uploads/avatar/xxx.png` 这样的相对地址，前端加 `/api` 前缀访问；部署时该目录要可写并且要持久化，否则换头像会在重建容器后丢失。
 - `sql/init_database.sql` 与 `sql/article_schema.sql` 有一部分重复的建表语句（前者面向全新部署，后者面向文章模块的增量升级），修改表结构时两个文件都要同步；用户表所在的登录模块增量升级用 `sql/user_schema.sql`。

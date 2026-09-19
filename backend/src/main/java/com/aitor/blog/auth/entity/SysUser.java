@@ -23,5 +23,8 @@ public class SysUser {
     /** 头像地址，默认空字符串表示未设置头像 */
     private String avatar;
 
+    /** 角色：owner-站长（前台首页展示的人）、admin-管理员、user-普通用户 */
+    private String role;
+
     private LocalDateTime createTime;
 }

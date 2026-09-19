@@ -101,11 +101,23 @@ SQL="INSERT INTO sys_user (username, email, password)
 VALUES ('$(sql_escape "$USERNAME")', '$(sql_escape "$EMAIL")', '$(sql_escape "$HASH")')
 ON DUPLICATE KEY UPDATE email = VALUES(email), password = VALUES(password);"
 
+# 还没有站长时，把最早注册的账号提升为站长（前台首页只展示这个账号）
+PROMOTE_SQL="SET @owner_exists := (SELECT COUNT(*) FROM sys_user WHERE role = 'owner');
+SET @first_user_id := (SELECT MIN(id) FROM sys_user);
+UPDATE sys_user
+SET role = 'owner'
+WHERE @owner_exists = 0
+  AND @first_user_id IS NOT NULL
+  AND id = @first_user_id;"
+
 if [ -n "$DB_PASSWORD" ]; then
     export MYSQL_PWD="$DB_PASSWORD"
 fi
 
 mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$SQL"
+
+# 单独跑一次站长提升：老库补 role 列后也能靠这步确定站长
+mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$PROMOTE_SQL"
 
 echo "账号已写入 $DB_NAME.sys_user：$USERNAME <$EMAIL>"
 

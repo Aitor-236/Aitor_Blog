@@ -34,3 +34,35 @@ SET @avatar_ddl := IF(
 PREPARE avatar_stmt FROM @avatar_ddl;
 EXECUTE avatar_stmt;
 DEALLOCATE PREPARE avatar_stmt;
+
+-- ------------------------------------------------------------
+-- sys_user.role：角色，决定谁是"站长"（前台首页只展示优先级最高的那个账号）
+-- 优先级 owner > admin > user，同优先级时前台取 id 最小的（最早注册的）
+-- ------------------------------------------------------------
+SET @role_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'sys_user'
+      AND COLUMN_NAME = 'role'
+);
+
+SET @role_ddl := IF(
+    @role_exists = 0,
+    'ALTER TABLE sys_user ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT ''user'' COMMENT ''角色：owner-站长（前台首页展示的人），admin-管理员，user-普通用户'' AFTER avatar',
+    'SELECT ''sys_user.role 已存在，跳过'' AS message'
+);
+
+PREPARE role_stmt FROM @role_ddl;
+EXECUTE role_stmt;
+DEALLOCATE PREPARE role_stmt;
+
+-- 老库补列后还没有站长：把最早注册的那个账号提升为站长（已经有人是 owner 时不动）
+SET @owner_exists := (SELECT COUNT(*) FROM sys_user WHERE role = 'owner');
+SET @first_user_id := (SELECT MIN(id) FROM sys_user);
+
+UPDATE sys_user
+SET role = 'owner'
+WHERE @owner_exists = 0
+  AND @first_user_id IS NOT NULL
+  AND id = @first_user_id;

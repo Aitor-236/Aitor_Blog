@@ -5,7 +5,7 @@ let savedScrollTop = 0
 </script>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import request from '@/utils/request'
 
@@ -23,6 +23,12 @@ function formatDate(value?: string | null) {
   return value ? value.slice(0, 10) : ''
 }
 
+/** 站长资料（来自 GET /site/owner）：首页只展示级别最高的账号，也就是站点持有者 */
+interface SiteOwner {
+  username: string
+  avatar: string
+}
+
 const latestArticles = ref<ArticleItem[]>([])
 /** 已发布文章总数（来自 GET /article/list 的 total） */
 const articleTotal = ref(0)
@@ -30,6 +36,14 @@ const articleTotal = ref(0)
 const artworkTotal = ref(0)
 const articlesLoading = ref(true)
 const articlesError = ref('')
+/** 站长名字：接口回来之前先用默认值，避免首页闪一下空白 */
+const ownerName = ref('Aitor')
+/** 站长头像相对地址，空字符串表示还没设置头像 */
+const ownerAvatar = ref('')
+/** 没有自定义头像就退回 public/avatar.svg 那张占位图 */
+const ownerAvatarUrl = computed(() =>
+  ownerAvatar.value ? `/api${ownerAvatar.value}` : '/avatar.svg'
+)
 /** 整屏滚动容器，用来保存 / 恢复滚动位置 */
 const pageRef = ref<HTMLElement | null>(null)
 
@@ -52,8 +66,20 @@ async function loadLatestArticles() {
   }
 }
 
+async function loadSiteOwner() {
+  try {
+    const res = (await request.get('/site/owner')) as { data: SiteOwner }
+    if (res.data.username) {
+      ownerName.value = res.data.username
+    }
+    ownerAvatar.value = res.data.avatar || ''
+  } catch {
+    // 拿不到站长资料就继续用默认头像和名字，不影响首页其它内容
+  }
+}
+
 onMounted(async () => {
-  await loadLatestArticles()
+  await Promise.all([loadLatestArticles(), loadSiteOwner()])
   // 文章渲染完成后恢复滚动位置；内容高度可能还要再稳定一两帧，
  await nextTick()
   // 所以设置后校验一次，没到位就再等一帧重试，避免被截断到较小的值
@@ -83,8 +109,8 @@ onBeforeRouteLeave(() => {
       <!-- 工具栏：每块小组件各自成一个框，目前先放头像/名字/数据一块 -->
       <aside class="tool-panel" aria-label="工具栏">
         <section class="widget-card surface-panel profile-card">
-          <img class="profile-avatar" src="/avatar.svg" alt="Aitor 的头像" />
-          <p class="profile-name">Aitor</p>
+          <img class="profile-avatar" :src="ownerAvatarUrl" :alt="`${ownerName} 的头像`" />
+          <p class="profile-name">{{ ownerName }}</p>
           <dl class="profile-stats">
             <div class="profile-stat">
               <dt>文章</dt>
