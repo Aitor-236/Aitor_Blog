@@ -160,7 +160,7 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 
 | 表 | 说明 |
 | --- | --- |
-| `sys_user` | 登录用户：`id` / `username`（唯一）/ `email` / `password`（BCrypt）/ `create_time` |
+| `sys_user` | 登录用户：`id` / `username`（唯一）/ `email` / `password`（BCrypt）/ `avatar`（头像地址，默认空）/ `create_time` |
 | `article_category` | 文章分类：`name` / `slug`（唯一）/ `sort_order`，脚本预置前端、后端、绘画、生活四条 |
 | `tag` | 标签：`name`（唯一） |
 | `article` | 文章主表：`title` / `summary` / `content_markdown` / `status`(draft, published) / `published_at` / `reading_minutes` |
@@ -199,4 +199,4 @@ npm run format              # Prettier 格式化
 - 画廊页（`/gallery`）和个人简介页（`/about`）目前是页面内静态数据，等后端接口就绪后再替换。
 - 目前没有角色 / 权限模型：后台接口只校验"是否登录"，任何登录用户都能进入后台。
 - `article.author_id` 对齐 `sys_user.id` 使用**有符号** BIGINT，文章模块其余主键是 BIGINT UNSIGNED，新增外键列时注意类型不要写错。
-- `sql/init_database.sql` 与 `sql/article_schema.sql` 有一部分重复的建表语句（前者面向全新部署，后者面向增量升级），修改表结构时两个文件都要同步。
+- `sql/init_database.sql` 与 `sql/article_schema.sql` 有一部分重复的建表语句（前者面向全新部署，后者面向文章模块的增量升级），修改表结构时两个文件都要同步；用户表所在的登录模块增量升级用 `sql/user_schema.sql`。

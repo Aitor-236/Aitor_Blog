@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     username VARCHAR(50) NOT NULL COMMENT '用户名',
     email VARCHAR(100) NOT NULL COMMENT '邮箱',
     password VARCHAR(100) NOT NULL COMMENT '密码（BCrypt 哈希）',
+    avatar VARCHAR(255) NOT NULL DEFAULT '' COMMENT '头像地址，默认为空',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_username (username)

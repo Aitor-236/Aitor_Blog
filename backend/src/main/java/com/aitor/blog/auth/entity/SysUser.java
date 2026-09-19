@@ -20,5 +20,8 @@ public class SysUser {
 
     private String email;
 
+    /** 头像地址，默认空字符串表示未设置头像 */
+    private String avatar;
+
     private LocalDateTime createTime;
 }
