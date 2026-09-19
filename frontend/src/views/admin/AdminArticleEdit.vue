@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { ElInput, ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 import request from '@/utils/request'
+import { renderMarkdown } from '@/utils/markdown'
 
 /** 后台文章详情（来自 GET /admin/article/{id}） */
 interface AdminArticleDetail {
@@ -15,6 +15,7 @@ interface AdminArticleDetail {
   categoryId: number | null
   categoryName: string
   categorySlug: string
+  tags: string[]
   status: 'draft' | 'published'
   publishedAt: string | null
   createdAt: string | null
@@ -29,15 +30,39 @@ interface CategoryItem {
   articleCount: number
 }
 
+/** 后台标签项（来自 GET /admin/tag/list） */
+interface AdminTagItem {
+  id: number
+  name: string
+  articleCount: number
+}
+
+/** MyBatis-Plus 分页返回结构 */
+interface TagPage {
+  records: AdminTagItem[]
+  total: number
+}
+
+/** 正文配图上传结果（来自 POST /admin/upload/image） */
+interface UploadedImage {
+  url: string
+  name: string
+  size: number
+}
+
 const route = useRoute()
 const router = useRouter()
 
 const formRef = ref<FormInstance>()
+/** 正文输入框，插入图片时要拿它内部 textarea 的光标位置 */
+const contentRef = ref<InstanceType<typeof ElInput> | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
 const form = reactive({
   title: '',
   summary: '',
   categoryName: '',
-  content: ''
+  content: '',
+  tags: [] as string[]
 })
 
 const rules: FormRules<typeof form> = {
@@ -56,10 +81,13 @@ const meta = reactive({
 })
 
 const categories = ref<CategoryItem[]>([])
+/** 标签下拉选项，取后台标签库的前 100 个；编辑器里也能直接输入新标签 */
+const tagOptions = ref<string[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
 const unpublishing = ref(false)
+const uploadingImage = ref(false)
 const dirty = ref(false)
 /** 回填表单期间不把接口返回的内容当成用户修改 */
 const hydrating = ref(false)
@@ -68,8 +96,7 @@ const isEditMode = computed(() => articleId.value !== null)
 
 const renderedContent = computed(() => {
   if (!form.content.trim()) return '<p class="preview-placeholder">正文预览会显示在这里</p>'
-  const html = marked.parse(form.content, { async: false }) as string
-  return DOMPurify.sanitize(html)
+  return renderMarkdown(form.content)
 })
 
 const wordCount = computed(() => form.content.replace(/\s/g, '').length)
@@ -88,6 +115,18 @@ async function loadCategories() {
   }
 }
 
+async function loadTags() {
+  try {
+    const res = (await request.get('/admin/tag/list', {
+      params: { page: 1, size: 100 }
+    })) as { data: TagPage }
+    tagOptions.value = res.data.records.map((tag) => tag.name)
+  } catch {
+    // 标签接口失败时仍然可以手写标签名，不阻塞编辑
+    tagOptions.value = []
+  }
+}
+
 async function loadDetail(id: string) {
   loading.value = true
   hydrating.value = true
@@ -100,6 +139,7 @@ async function loadDetail(id: string) {
     form.summary = detail.summary ?? ''
     form.categoryName = detail.categoryName ?? ''
     form.content = detail.content ?? ''
+    form.tags = detail.tags ?? []
     meta.createdAt = detail.createdAt ?? ''
     meta.updatedAt = detail.updatedAt ?? ''
     meta.publishedAt = detail.publishedAt ?? ''
@@ -125,8 +165,98 @@ function buildPayload() {
     // 摘要和正文在库里是 NOT NULL，留空时提交空串而不是 undefined
     summary: form.summary ?? '',
     content: form.content ?? '',
-    categoryName: form.categoryName
+    categoryName: form.categoryName,
+    // 标签整体提交，空数组表示清空这篇文章的标签
+    tags: form.tags
   }
+}
+
+/**
+ * 把一段 Markdown 插到正文光标处（没有光标就追加到末尾），
+ * 前后自动补齐换行，插完把光标停在片段后面，方便接着写。
+ */
+function insertIntoContent(snippet: string) {
+  const textarea = contentRef.value?.textarea
+  const source = form.content
+  const start = textarea?.selectionStart ?? source.length
+  const end = textarea?.selectionEnd ?? start
+
+  const before = source.slice(0, start)
+  const after = source.slice(end)
+  const prefix = !before ? '' : before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n'
+  const suffix = after.startsWith('\n') ? '' : '\n'
+  const inserted = `${prefix}${snippet}${suffix}`
+
+  form.content = before + inserted + after
+  void nextTick(() => {
+    if (!textarea) return
+    textarea.focus()
+    const caret = start + inserted.length
+    textarea.setSelectionRange(caret, caret)
+  })
+}
+
+function pickImage() {
+  imageInputRef.value?.click()
+}
+
+/** 选择图片后立刻上传并插入正文，中间不弹二次确认。 */
+async function onImagePick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // 清空 value，否则连续选同一张图片不会再触发 change
+  input.value = ''
+  if (file) {
+    await insertImage(file)
+  }
+}
+
+/** 上传图片并把 Markdown 图片语法插到光标处，预览区和前台详情页都会显示。 */
+async function insertImage(file: File) {
+  if (!file.type.startsWith('image/')) {
+    ElMessage.warning('只能插入图片文件')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.warning('图片不能超过 5MB')
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  uploadingImage.value = true
+  try {
+    // 上传比普通请求慢，单独放宽超时（默认 5 秒）
+    const res = (await request.post('/admin/upload/image', formData, { timeout: 20000 })) as {
+      data: UploadedImage
+    }
+    const alt = file.name.replace(/\.[^.]+$/, '').replace(/[[\]]/g, '') || '图片'
+    insertIntoContent(`![${alt}](${res.data.url})`)
+    ElMessage.success('图片已插入正文')
+  } catch {
+    // 错误提示由 request 拦截器统一处理
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+/** 截图直接粘贴时自动上传；粘贴普通文本不拦截。 */
+function onPasteImage(event: Event) {
+  const files = Array.from((event as ClipboardEvent).clipboardData?.files ?? [])
+  const image = files.find((item) => item.type.startsWith('image/'))
+  if (!image) return
+  event.preventDefault()
+  void insertImage(image)
+}
+
+/** 把图片文件拖到编辑区也能插入。 */
+function onDropImage(event: Event) {
+  const files = Array.from((event as DragEvent).dataTransfer?.files ?? [])
+  const image = files.find((item) => item.type.startsWith('image/'))
+  if (!image) return
+  event.preventDefault()
+  void insertImage(image)
 }
 
 /**
@@ -259,7 +389,7 @@ onBeforeRouteLeave(async () => {
 })
 
 onMounted(async () => {
-  await loadCategories()
+  await Promise.all([loadCategories(), loadTags()])
   const id = typeof route.params.id === 'string' ? route.params.id : ''
   if (id) {
     await loadDetail(id)
@@ -345,14 +475,53 @@ onMounted(async () => {
             </el-select>
           </el-form-item>
 
+          <el-form-item label="标签" prop="tags">
+            <el-select
+              v-model="form.tags"
+              class="tag-select"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              :reserve-keyword="false"
+              placeholder="选择已有标签，或输入新标签后回车"
+            >
+              <el-option v-for="tag in tagOptions" :key="tag" :label="tag" :value="tag" />
+            </el-select>
+            <p class="form-tip">
+              标签会显示在前台文章卡片和详情页，点标签可以筛出同类文章；留空表示这篇文章没有标签
+            </p>
+          </el-form-item>
+
           <el-form-item label="正文（Markdown）" prop="content">
+            <div class="content-toolbar">
+              <el-button size="small" :icon="Picture" :loading="uploadingImage" @click="pickImage">
+                插入图片
+              </el-button>
+              <span class="content-toolbar-tip">
+                也可以直接粘贴或拖拽图片，支持 png / jpg / webp / gif，单张不超过 5MB
+              </span>
+            </div>
+
+            <input
+              ref="imageInputRef"
+              class="file-input"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              @change="onImagePick"
+            />
+
             <el-input
+              ref="contentRef"
               v-model="form.content"
               type="textarea"
               :rows="20"
               resize="vertical"
               class="content-input"
               placeholder="# 标题&#10;正文支持 Markdown：列表、代码块、引用、图片等"
+              @paste="onPasteImage"
+              @drop="onDropImage"
+              @dragover.prevent
             />
           </el-form-item>
         </el-form>
@@ -413,6 +582,38 @@ onMounted(async () => {
 
 .category-select {
   width: 100%;
+}
+
+.tag-select {
+  width: 100%;
+}
+
+.form-tip {
+  width: 100%;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.content-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.content-toolbar-tip {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 隐藏原生文件选择框，点「插入图片」按钮时由它弹出系统选择窗口 */
+.file-input {
+  display: none;
 }
 
 .content-input :deep(textarea) {
@@ -527,8 +728,36 @@ onMounted(async () => {
   background: transparent;
 }
 
+/* 代码块语言标签：有语言的代码块会被 .code-block 包一层 */
+.markdown-body :deep(.code-block) {
+  position: relative;
+  margin: 0 0 12px;
+}
+
+.markdown-body :deep(.code-block pre) {
+  margin: 0;
+  padding-top: 34px;
+}
+
+.markdown-body :deep(.code-block-lang) {
+  position: absolute;
+  top: 11px;
+  left: 14px;
+  z-index: 1;
+  color: var(--accent-brown);
+  font-family:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'PingFang SC', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  user-select: none;
+}
+
 .markdown-body :deep(img) {
+  display: block;
   max-width: 100%;
+  margin: 0 auto 12px;
   border-radius: 14px;
 }
 

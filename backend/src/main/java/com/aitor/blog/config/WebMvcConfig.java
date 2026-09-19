@@ -28,6 +28,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 "/article/list",               // public article cards
                 "/article/detail/**",          // public article detail
                 "/category/list",              // public category list
+                "/tag/list",                   // public tag list（前台标签面板）
                 "/site/owner",                 // public site owner profile
                 "/uploads/**");                // 头像等静态资源，<img> 请求不会带 token
     }

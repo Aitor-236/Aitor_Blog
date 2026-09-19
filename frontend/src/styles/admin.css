@@ -114,12 +114,16 @@
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
   --el-table-header-bg-color: var(--panel-alt-bg);
-  --el-table-row-hover-bg-color: #fbf6ec;
+  /* 鼠标移到行上不高亮（用户明确要求），行是否可点靠光标和副标题提示 */
+  --el-table-row-hover-bg-color: transparent;
   --el-table-border-color: rgba(138, 90, 59, 0.16);
   --el-table-text-color: var(--text-strong);
   --el-table-header-text-color: var(--text-muted);
 
   background: transparent;
+  /* 表格嵌在圆角面板里，自己也要圆角，否则表头和第一行会露出直角 */
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .admin-page .el-table__inner-wrapper::before {

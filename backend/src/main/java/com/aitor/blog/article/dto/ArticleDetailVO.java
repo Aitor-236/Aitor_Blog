@@ -1,6 +1,7 @@
 package com.aitor.blog.article.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.aitor.blog.article.entity.Article;
 import com.aitor.blog.article.entity.ArticleCategory;
@@ -34,7 +35,10 @@ public class ArticleDetailVO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ArticleDetailVO(Article article, ArticleCategory category) {
+    /** 标签名列表，编辑页回显选中的标签；没有标签时是空列表 */
+    private List<String> tags;
+
+    public ArticleDetailVO(Article article, ArticleCategory category, List<String> tags) {
         this.id = article.getId();
         this.title = article.getTitle();
         this.summary = article.getSummary();
@@ -46,5 +50,6 @@ public class ArticleDetailVO {
         this.publishedAt = article.getPublishedAt();
         this.createdAt = article.getCreatedAt();
         this.updatedAt = article.getUpdatedAt();
+        this.tags = tags == null ? List.of() : tags;
     }
 }

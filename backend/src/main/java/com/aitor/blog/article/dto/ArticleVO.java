@@ -1,6 +1,9 @@
 package com.aitor.blog.article.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.aitor.blog.article.entity.Article;
 
 import lombok.Data;
@@ -14,6 +17,9 @@ public class ArticleVO {
     private String status;
     private LocalDateTime publishedAt;
     private Integer readingMinutes;
+
+    /** 标签名列表，列表卡片上展示；没有标签时是空列表 */
+    private List<String> tags = new ArrayList<>();
 
     public ArticleVO() {
     }

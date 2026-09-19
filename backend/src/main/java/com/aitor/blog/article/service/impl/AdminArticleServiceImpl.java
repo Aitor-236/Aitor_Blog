@@ -1,8 +1,11 @@
 package com.aitor.blog.article.service.impl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.aitor.blog.article.dto.ArticleDTO;
@@ -11,8 +14,12 @@ import com.aitor.blog.article.dto.ArticleDetailVO;
 import com.aitor.blog.article.dto.ArticleVO;
 import com.aitor.blog.article.entity.Article;
 import com.aitor.blog.article.entity.ArticleCategory;
+import com.aitor.blog.article.entity.ArticleTag;
+import com.aitor.blog.article.entity.Tag;
 import com.aitor.blog.article.mapper.AdminArticleMapper;
 import com.aitor.blog.article.mapper.ArticleCategoryMapper;
+import com.aitor.blog.article.mapper.ArticleTagMapper;
+import com.aitor.blog.article.mapper.TagMapper;
 import com.aitor.blog.article.service.AdminArticleService;
 import com.aitor.blog.common.exception.BusinessException;
 import com.aitor.blog.common.utils.PageParam;
@@ -28,8 +35,13 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     private static final String STATUS_DRAFT = "draft";
     private static final String STATUS_PUBLISHED = "published";
 
+    /** tag.name 的列长度，超长直接给 400，避免数据库截断异常变成 500。 */
+    private static final int TAG_NAME_MAX_LENGTH = 50;
+
     private final AdminArticleMapper adminArticleMapper;
     private final ArticleCategoryMapper articleCategoryMapper;
+    private final ArticleTagMapper articleTagMapper;
+    private final TagMapper tagMapper;
     private final ArticleVOAssembler articleVOAssembler;
 
     @Override
@@ -67,6 +79,7 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     }
 
     @Override
+    @Transactional
     public ArticleVO createArticle(ArticleDTO articleDTO, Long authorId) {
         if (articleDTO == null || !StringUtils.hasText(articleDTO.getTitle())) {
             throw new BusinessException("文章标题不能为空");
@@ -94,7 +107,10 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         article.setUpdatedAt(now);
 
         adminArticleMapper.insert(article);
-        return ArticleVO.from(article, category.getName());
+        // 新建时按编辑器提交的标签建关联，没传标签就当作没有标签
+        syncArticleTags(article.getId(), articleDTO.getTags());
+
+        return loadArticleVO(article.getId());
     }
 
     /**
@@ -119,6 +135,7 @@ public class AdminArticleServiceImpl implements AdminArticleService {
     }
 
     @Override
+    @Transactional
     public ArticleVO updateArticle(ArticleDTO articleDTO) {
         if (articleDTO == null || articleDTO.getId() == null) {
             throw new BusinessException("文章ID不能为空");
@@ -150,6 +167,10 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         article.setUpdatedAt(LocalDateTime.now());
 
         adminArticleMapper.updateById(article);
+        // 标签为 null 表示这次不改标签，传了（哪怕是空列表）就整体覆盖
+        if (articleDTO.getTags() != null) {
+            syncArticleTags(existing.getId(), articleDTO.getTags());
+        }
         return loadArticleVO(existing.getId());
     }
 
@@ -163,7 +184,8 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         if (article == null) {
             throw new BusinessException(404, "文章不存在");
         }
-        return new ArticleDetailVO(article, loadCategory(article.getCategoryId()));
+        return new ArticleDetailVO(article, loadCategory(article.getCategoryId()),
+                articleTagMapper.selectTagNamesByArticleId(id));
     }
 
     @Override
@@ -281,7 +303,63 @@ public class AdminArticleServiceImpl implements AdminArticleService {
             return null;
         }
         ArticleCategory category = loadCategory(article.getCategoryId());
-        return ArticleVO.from(article, category == null ? null : category.getName());
+        ArticleVO vo = ArticleVO.from(article, category == null ? null : category.getName());
+        vo.setTags(articleTagMapper.selectTagNamesByArticleId(id));
+        return vo;
+    }
+
+    /**
+     * 覆盖式写入文章标签：先清掉旧关联，再按名称匹配已有标签，
+     * 匹配不到的（编辑器里新输入的标签）顺手建一个，最后补齐关联行。
+     */
+    private void syncArticleTags(Long articleId, List<String> tagNames) {
+        articleTagMapper.delete(new LambdaQueryWrapper<ArticleTag>()
+                .eq(ArticleTag::getArticleId, articleId));
+
+        List<String> normalized = normalizeTagNames(tagNames);
+        if (normalized.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        for (String name : normalized) {
+            Tag tag = tagMapper.selectOne(new LambdaQueryWrapper<Tag>()
+                    .eq(Tag::getName, name)
+                    .last("limit 1"));
+            if (tag == null) {
+                tag = new Tag();
+                tag.setName(name);
+                tag.setCreatedAt(now);
+                tagMapper.insert(tag);
+            }
+
+            ArticleTag relation = new ArticleTag();
+            relation.setArticleId(articleId);
+            relation.setTagId(tag.getId());
+            articleTagMapper.insert(relation);
+        }
+    }
+
+    /** 去空白、去重、校验长度；重复的标签只留一个，否则复合主键会冲突。 */
+    private List<String> normalizeTagNames(List<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> normalized = new ArrayList<>();
+        for (String raw : tagNames) {
+            if (!StringUtils.hasText(raw)) {
+                continue;
+            }
+            String name = raw.trim();
+            if (name.length() > TAG_NAME_MAX_LENGTH) {
+                throw new BusinessException("标签不能超过 " + TAG_NAME_MAX_LENGTH + " 个字符");
+            }
+            if (!normalized.contains(name)) {
+                normalized.add(name);
+            }
+        }
+        return normalized;
     }
 
     /**

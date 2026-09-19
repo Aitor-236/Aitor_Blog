@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import request from '@/utils/request'
+import { renderMarkdown } from '@/utils/markdown'
 
 /** 公开文章详情（来自 GET /article/detail/{id}） */
 interface ArticleDetail {
@@ -26,12 +25,11 @@ const article = ref<ArticleDetail | null>(null)
 const loading = ref(false)
 const errorMessage = ref('')
 
-// Markdown 在后端只存原文，这里解析后再用 DOMPurify 清洗，避免正文注入脚本
+// Markdown 在后端只存原文，这里用公共渲染器解析并清洗（含代码块语言标签、图片地址补前缀）
 const renderedContent = computed(() => {
   const source = article.value?.content
   if (!source) return ''
-  const html = marked.parse(source, { async: false }) as string
-  return DOMPurify.sanitize(html)
+  return renderMarkdown(source)
 })
 
 function formatDate(value?: string | null) {
@@ -97,11 +95,23 @@ watch(
 
       <article v-else-if="article" class="article-detail surface-panel">
         <header class="detail-header">
-          <span class="card-tag">{{ article.categoryName }}</span>
+          <router-link
+            class="card-tag"
+            :to="{ path: '/articles', query: { category: article.categorySlug } }"
+          >
+            {{ article.categoryName }}
+          </router-link>
           <h1>{{ article.title }}</h1>
           <p v-if="article.summary" class="detail-summary">{{ article.summary }}</p>
           <div v-if="article.tags && article.tags.length" class="detail-tags">
-            <span v-for="tag in article.tags" :key="tag" class="tag-chip">{{ tag }}</span>
+            <router-link
+              v-for="tag in article.tags"
+              :key="tag"
+              class="tag-chip"
+              :to="{ path: '/articles', query: { tag } }"
+            >
+              {{ tag }}
+            </router-link>
           </div>
           <div class="detail-meta">
             <time :datetime="article.publishedAt || undefined">
@@ -164,7 +174,16 @@ watch(
   border-radius: 999px;
   color: #7a5436;
   font-size: 12px;
+  text-decoration: none;
   background: #ecdec5;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.card-tag:hover {
+  color: #fdf9f2;
+  background: var(--accent-brown);
 }
 
 .detail-header h1 {
@@ -189,12 +208,22 @@ watch(
 }
 
 .tag-chip {
+  display: inline-block;
   padding: 3px 12px;
   border-radius: 999px;
   color: var(--accent-brown);
   font-size: 12px;
+  text-decoration: none;
   background: var(--panel-alt-bg);
   box-shadow: inset 0 0 0 1px rgba(138, 90, 59, 0.22);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tag-chip:hover {
+  color: #fdf9f2;
+  background: var(--accent-brown);
 }
 
 .detail-meta {
@@ -284,8 +313,34 @@ watch(
   background: transparent;
 }
 
+/* 代码块语言标签：写得有语言的代码块会被 .code-block 包一层，没写的不会有这层 */
+.markdown-body :deep(.code-block) {
+  position: relative;
+  margin: 0 0 20px;
+}
+
+.markdown-body :deep(.code-block pre) {
+  margin: 0;
+  padding-top: 42px;
+}
+
+.markdown-body :deep(.code-block-lang) {
+  position: absolute;
+  top: 14px;
+  left: 20px;
+  z-index: 1;
+  color: rgba(246, 241, 231, 0.6);
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
 .markdown-body :deep(img) {
+  display: block;
   max-width: 100%;
+  margin: 0 auto 20px;
   border-radius: 16px;
   box-shadow: 0 12px 28px rgba(120, 88, 58, 0.2);
 }

@@ -32,7 +32,8 @@ public class ArticleServiceImpl implements ArticleService {
     private final ArticleVOAssembler articleVOAssembler;
 
     @Override
-    public Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword) {
+    public Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword,
+            String tagName) {
         size = PageParam.requireValid(page, size);
 
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<Article>()
@@ -54,6 +55,12 @@ public class ArticleServiceImpl implements ArticleService {
             wrapper.and(w -> w.like(Article::getTitle, likeKeyword)
                     .or()
                     .like(Article::getSummary, likeKeyword));
+        }
+
+        if (StringUtils.hasText(tagName)) {
+            // 标签名来自前台，用 {0} 占位符交给 MyBatis 绑定参数，不拼 SQL
+            wrapper.apply("id IN (SELECT atg.article_id FROM article_tag atg "
+                    + "JOIN tag t ON t.id = atg.tag_id WHERE t.name = {0})", tagName.trim());
         }
 
         Page<Article> articlePage = articleMapper.selectPage(new Page<>(page, size), wrapper);

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import request from '@/utils/request'
 
@@ -14,6 +15,7 @@ interface AdminCategoryItem {
 
 const categories = ref<AdminCategoryItem[]>([])
 const loading = ref(false)
+const router = useRouter()
 /** 正在删除的分类ID，用来只禁用这一行的按钮 */
 const busyId = ref<number | null>(null)
 
@@ -73,6 +75,21 @@ function openCreate() {
 
 function openEdit(row: AdminCategoryItem) {
   openDialog(row.id, row.name, row.slug)
+}
+
+/** 点分类直接去后台文章列表看这个分类的文章，在那边可以正常编辑 / 发布。 */
+function goCategoryArticles(row: AdminCategoryItem) {
+  void router.push({ path: '/admin/articles', query: { category: row.slug } })
+}
+
+/**
+ * 整行都可以点进该分类的文章：判定箱不再只有分类名那一小块。
+ * 操作列里的「编辑 / 删除」自己处理点击，这里直接跳过。
+ */
+function onRowClick(row: AdminCategoryItem, _column: unknown, event: Event) {
+  const target = event.target as HTMLElement | null
+  if (target?.closest('button, a')) return
+  goCategoryArticles(row)
 }
 
 async function submitForm() {
@@ -141,7 +158,7 @@ onMounted(loadCategories)
       <div>
         <h1 class="admin-page-title">分类管理</h1>
         <p class="admin-page-subtitle">
-          共 {{ categories.length }} 个分类，按排序值展示；新分类自动排在最后，分类下还有文章时不能删除
+          共 {{ categories.length }} 个分类，按排序值展示；点任意一行可以看该分类的文章，分类下还有文章时不能删除
         </p>
       </div>
 
@@ -152,10 +169,22 @@ onMounted(loadCategories)
     </header>
 
     <section class="admin-panel list-panel">
-      <el-table v-loading="loading" :data="categories" style="width: 100%">
+      <el-table
+        v-loading="loading"
+        :data="categories"
+        style="width: 100%"
+        @row-click="onRowClick"
+      >
         <el-table-column label="分类" min-width="200">
           <template #default="{ row }">
-            <span class="category-chip">{{ row.name }}</span>
+            <button
+              type="button"
+              class="category-chip"
+              title="查看这个分类下的文章"
+              @click="goCategoryArticles(row)"
+            >
+              {{ row.name }}
+            </button>
           </template>
         </el-table-column>
 
@@ -167,7 +196,9 @@ onMounted(loadCategories)
 
         <el-table-column label="文章数" width="140">
           <template #default="{ row }">
-            <span class="category-count">{{ row.articleCount }} 篇</span>
+            <el-button link type="primary" @click="goCategoryArticles(row)">
+              {{ row.articleCount }} 篇
+            </el-button>
           </template>
         </el-table-column>
 
@@ -254,10 +285,18 @@ onMounted(loadCategories)
 .category-chip {
   display: inline-block;
   padding: 4px 12px;
+  border: none;
   border-radius: 999px;
   color: #7a5436;
   font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
   background: #ecdec5;
+}
+
+/* 整行是跳转入口，鼠标移到行上给出手型光标 */
+:deep(.el-table__row) {
+  cursor: pointer;
 }
 
 .category-slug {
@@ -267,11 +306,6 @@ onMounted(loadCategories)
   font-size: 12px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   background: var(--panel-alt-bg);
-}
-
-.category-count {
-  color: var(--text-muted);
-  font-size: 13px;
 }
 
 .row-actions {

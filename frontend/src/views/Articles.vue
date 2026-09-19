@@ -6,7 +6,7 @@ let savedScrollTop = 0
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 
 /** 文章卡片类型（来自 GET /article/list） */
@@ -17,6 +17,7 @@ interface ArticleItem {
   categoryName: string
   publishedAt: string
   readingMinutes: number
+  tags: string[]
 }
 
 /** 分类类型（来自 GET /category/list） */
@@ -24,6 +25,13 @@ interface CategoryItem {
   id: number
   name: string
   slug: string
+  articleCount: number
+}
+
+/** 标签类型（来自 GET /tag/list，只含有已发布文章的标签） */
+interface TagItem {
+  id: number
+  name: string
   articleCount: number
 }
 
@@ -42,20 +50,22 @@ function formatDate(value?: string | null) {
   return value ? value.slice(0, 10) : ''
 }
 
+const route = useRoute()
+const router = useRouter()
+
 const articles = ref<ArticleItem[]>([])
 const categories = ref<CategoryItem[]>([])
-const activeTag = ref('全部')
+const tags = ref<TagItem[]>([])
+/** 当前选中的分类 slug，空串表示"全部" */
+const activeCategorySlug = ref('')
+/** 当前选中的标签名，空串表示不按标签筛选 */
+const activeTagName = ref('')
 const keywordInput = ref('')
 const appliedKeyword = ref('')
 const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
 const errorMessage = ref('')
-
-// 当前选中的分类 slug，接口按 slug 筛选
-const activeCategorySlug = computed(
-  () => categories.value.find((category) => category.name === activeTag.value)?.slug ?? ''
-)
 
 const totalArticles = computed(() =>
   categories.value.reduce((sum, category) => sum + category.articleCount, 0)
@@ -66,10 +76,12 @@ const allArticleCount = computed(() =>
   categories.value.length ? totalArticles.value : total.value
 )
 
-const tagOptions = computed(() => [
-  { name: '全部', count: allArticleCount.value },
+/** 分类面板的选项：第一条是"全部"，其余按后端返回的顺序 */
+const categoryOptions = computed(() => [
+  { name: '全部', slug: '', count: allArticleCount.value },
   ...categories.value.map((category) => ({
     name: category.name,
+    slug: category.slug,
     count: category.articleCount
   }))
 ])
@@ -86,6 +98,16 @@ async function loadCategories() {
   }
 }
 
+async function loadTags() {
+  try {
+    const res = (await request.get('/tag/list')) as { data: TagItem[] }
+    tags.value = res.data
+  } catch {
+    // 标签面板是可选内容，接口失败时隐藏即可
+    tags.value = []
+  }
+}
+
 async function loadArticles() {
   loading.value = true
   errorMessage.value = ''
@@ -95,6 +117,7 @@ async function loadArticles() {
         page: page.value,
         size: PAGE_SIZE,
         category: activeCategorySlug.value || undefined,
+        tag: activeTagName.value || undefined,
         keyword: appliedKeyword.value || undefined
       }
     })) as { data: ArticlePage }
@@ -110,10 +133,55 @@ async function loadArticles() {
   }
 }
 
-function selectTag(name: string) {
-  if (activeTag.value === name) return
-  activeTag.value = name
+/** 把当前筛选写回地址栏，链接可以直接分享、刷新后筛选还在 */
+function syncQuery() {
+  const query: Record<string, string> = {}
+  if (activeCategorySlug.value) query.category = activeCategorySlug.value
+  if (activeTagName.value) query.tag = activeTagName.value
+  void router.replace({ path: '/articles', query })
+}
+
+/** 从详情页的分类标签跳进来时地址栏带 ?category=slug，这里直接按它筛选 */
+function applyRouteQuery() {
+  const categoryQuery = route.query.category
+  if (typeof categoryQuery === 'string' && categoryQuery) {
+    activeCategorySlug.value = categoryQuery
+  }
+  const tagQuery = route.query.tag
+  if (typeof tagQuery === 'string' && tagQuery) {
+    activeTagName.value = tagQuery
+  }
+}
+
+function selectCategory(slug: string) {
+  if (activeCategorySlug.value === slug) return
+  activeCategorySlug.value = slug
   page.value = 1
+  syncQuery()
+  void loadArticles()
+}
+
+/** 再点一次已选中的标签表示取消筛选。 */
+function selectTagName(name: string) {
+  activeTagName.value = activeTagName.value === name ? '' : name
+  page.value = 1
+  syncQuery()
+  void loadArticles()
+}
+
+/** 文章卡片上的分类徽标只有名称，这里按名称换回 slug 再筛选 */
+function selectCategoryByName(name: string) {
+  const matched = categories.value.find((category) => category.name === name)
+  if (matched) {
+    selectCategory(matched.slug)
+  }
+}
+
+function clearTagFilter() {
+  if (!activeTagName.value) return
+  activeTagName.value = ''
+  page.value = 1
+  syncQuery()
   void loadArticles()
 }
 
@@ -138,7 +206,8 @@ function changePage(next: number) {
 }
 
 onMounted(async () => {
-  await loadCategories()
+  await Promise.all([loadCategories(), loadTags()])
+  applyRouteQuery()
   await loadArticles()
   // 列表渲染出来、高度稳定后再恢复滚动位置，没到位就再等一帧重试
   await nextTick()
@@ -157,7 +226,7 @@ onBeforeRouteLeave(() => {
 <template>
   <div class="page-shell">
     <main class="page-container">
-      <!-- 左侧文章列表 + 右侧分类面板 -->
+      <!-- 左侧文章列表 + 右侧分类 / 标签筛选 -->
       <div class="articles-layout">
         <section class="content-column">
           <!-- 关键词搜索：对应 GET /article/list 的 keyword 参数 -->
@@ -192,9 +261,20 @@ onBeforeRouteLeave(() => {
             </button>
           </div>
 
-          <p v-if="appliedKeyword" class="result-hint">
-            搜索“{{ appliedKeyword }}”共 {{ total }} 篇
-          </p>
+          <div v-if="appliedKeyword || activeTagName" class="filter-hint">
+            <span v-if="appliedKeyword" class="filter-hint-text">
+              搜索“{{ appliedKeyword }}”共 {{ total }} 篇
+            </span>
+            <button
+              v-if="activeTagName"
+              type="button"
+              class="filter-hint-chip"
+              @click="clearTagFilter"
+            >
+              标签：{{ activeTagName }}
+              <span class="filter-hint-clear">清除</span>
+            </button>
+          </div>
 
           <!-- 加载中 -->
           <div v-if="loading" class="state-card">
@@ -216,11 +296,30 @@ onBeforeRouteLeave(() => {
               :to="`/articles/${article.id}`"
             >
               <div class="article-head">
-                <span class="card-tag">{{ article.categoryName }}</span>
+                <button
+                  type="button"
+                  class="card-tag"
+                  :title="`只看「${article.categoryName}」分类`"
+                  @click.prevent="selectCategoryByName(article.categoryName)"
+                >
+                  {{ article.categoryName }}
+                </button>
                 <time :datetime="article.publishedAt">{{ formatDate(article.publishedAt) }}</time>
               </div>
               <h2>{{ article.title }}</h2>
               <p>{{ article.summary }}</p>
+              <div v-if="article.tags && article.tags.length" class="article-tags">
+                <button
+                  v-for="tag in article.tags"
+                  :key="tag"
+                  type="button"
+                  class="article-tag"
+                  :title="`只看「${tag}」标签`"
+                  @click.prevent="selectTagName(tag)"
+                >
+                  {{ tag }}
+                </button>
+              </div>
               <footer class="article-footer">
                 <span>约 {{ article.readingMinutes }} 分钟读完</span>
               </footer>
@@ -230,6 +329,7 @@ onBeforeRouteLeave(() => {
           <!-- 空状态 -->
           <div v-else class="state-card">
             <p v-if="appliedKeyword">没有找到与“{{ appliedKeyword }}”相关的文章。</p>
+            <p v-else-if="activeTagName">标签“{{ activeTagName }}”下暂时还没有文章。</p>
             <p v-else>这个分类暂时还没有文章。</p>
           </div>
 
@@ -255,22 +355,41 @@ onBeforeRouteLeave(() => {
           </div>
         </section>
 
-        <!-- 右侧分类面板 -->
-        <aside class="sidebar surface-panel" aria-label="文章分类">
-          <h2 class="sidebar-title">分类</h2>
-          <div class="filter-list">
-            <button
-              v-for="option in tagOptions"
-              :key="option.name"
-              type="button"
-              class="filter-tag"
-              :class="{ 'is-active': activeTag === option.name }"
-              @click="selectTag(option.name)"
-            >
-              <span>{{ option.name }}</span>
-              <span class="filter-count">{{ option.count }}</span>
-            </button>
-          </div>
+        <!-- 右侧筛选面板：分类 + 标签，点一下就能筛出对应的文章 -->
+        <aside class="sidebar" aria-label="文章筛选">
+          <section class="surface-panel sidebar-panel">
+            <h2 class="sidebar-title">分类</h2>
+            <div class="filter-list">
+              <button
+                v-for="option in categoryOptions"
+                :key="option.slug || 'all'"
+                type="button"
+                class="filter-tag"
+                :class="{ 'is-active': activeCategorySlug === option.slug }"
+                @click="selectCategory(option.slug)"
+              >
+                <span>{{ option.name }}</span>
+                <span class="filter-count">{{ option.count }}</span>
+              </button>
+            </div>
+          </section>
+
+          <section v-if="tags.length" class="surface-panel sidebar-panel">
+            <h2 class="sidebar-title">标签</h2>
+            <div class="filter-list">
+              <button
+                v-for="tag in tags"
+                :key="tag.id"
+                type="button"
+                class="filter-tag"
+                :class="{ 'is-active': activeTagName === tag.name }"
+                @click="selectTagName(tag.name)"
+              >
+                <span>{{ tag.name }}</span>
+                <span class="filter-count">{{ tag.articleCount }}</span>
+              </button>
+            </div>
+          </section>
         </aside>
       </div>
     </main>
@@ -366,10 +485,37 @@ onBeforeRouteLeave(() => {
   transform: translateY(-1px);
 }
 
-.result-hint {
+.filter-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin: 14px 4px 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.filter-hint-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  color: var(--accent-brown);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--panel-alt-bg);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 59, 0.22);
+}
+
+.filter-hint-chip:hover {
+  background: #fbf6ec;
+}
+
+.filter-hint-clear {
+  color: var(--text-muted);
 }
 
 /* ---------- 文章列表 ---------- */
@@ -412,10 +558,49 @@ onBeforeRouteLeave(() => {
 
 .card-tag {
   padding: 4px 12px;
+  border: none;
   border-radius: 999px;
   color: #7a5436;
   font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
   background: #ecdec5;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.card-tag:hover {
+  color: #fdf9f2;
+  background: var(--accent-brown);
+}
+
+/* 文章卡片上的标签，点一下筛出同标签的文章 */
+.article-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.article-tag {
+  padding: 3px 12px;
+  border: none;
+  border-radius: 999px;
+  color: var(--accent-brown);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--panel-alt-bg);
+  box-shadow: inset 0 0 0 1px rgba(138, 90, 59, 0.22);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.article-tag:hover {
+  color: #fdf9f2;
+  background: var(--accent-brown);
 }
 
 .article-head time {
@@ -516,10 +701,16 @@ onBeforeRouteLeave(() => {
 /* ---------- 右侧分类 ---------- */
 
 .sidebar {
+  display: flex;
   position: sticky;
   top: 28px;
+  flex-direction: column;
+  gap: 20px;
   align-self: start;
-  max-height: calc(100vh - 56px);
+}
+
+/* 分类、标签各自一块面板，符合"一条内容一个框" */
+.sidebar-panel {
   padding: 24px 18px;
   border-radius: 24px;
 }
@@ -587,7 +778,6 @@ onBeforeRouteLeave(() => {
 
   .sidebar {
     position: static;
-    max-height: none;
   }
 
   .filter-list {

@@ -28,8 +28,9 @@ public class ArticleController {
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long size,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String keyword) {
-        return Result.success(articleService.listPublished(page, size, category, keyword));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String tag) {
+        return Result.success(articleService.listPublished(page, size, category, keyword, tag));
     }
 
     /**

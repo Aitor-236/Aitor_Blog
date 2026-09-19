@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 
@@ -38,6 +38,7 @@ type ArticleAction = 'publish' | 'unpublish' | 'delete'
 const PAGE_SIZE = 8
 
 const router = useRouter()
+const route = useRoute()
 
 const articles = ref<AdminArticleItem[]>([])
 const categories = ref<CategoryItem[]>([])
@@ -138,6 +139,17 @@ function goEdit(row: AdminArticleItem) {
   void router.push(`/admin/articles/${row.id}/edit`)
 }
 
+/** 点文章列表里的分类徽标就按这个分类筛选，和分类管理跳过来是同一套参数。 */
+function filterByCategory(row: AdminArticleItem) {
+  const matched = categories.value.find((category) => category.name === row.categoryName)
+  if (!matched) {
+    ElMessage.warning('分类信息还没加载出来，刷新一下再试')
+    return
+  }
+  categorySlug.value = matched.slug
+  void router.replace({ path: '/admin/articles', query: { category: matched.slug } })
+}
+
 async function confirmAction(message: string, title: string, confirmButtonText: string) {
   try {
     await ElMessageBox.confirm(message, title, {
@@ -220,7 +232,16 @@ watch([statusFilter, categorySlug], () => {
 })
 
 onMounted(async () => {
+  // 从分类管理点某个分类进来时带 ?category=<slug>，直接把筛选项设成该分类
+  const queryCategory = route.query.category
+  const presetCategory = typeof queryCategory === 'string' ? queryCategory.trim() : ''
+
   await loadCategories()
+  if (presetCategory) {
+    // 赋值会触发 categorySlug 的 watcher 去拉第一页，这里不重复请求
+    categorySlug.value = presetCategory
+    return
+  }
   await loadArticles()
 })
 </script>
@@ -311,7 +332,16 @@ onMounted(async () => {
 
         <el-table-column label="分类" width="110">
           <template #default="{ row }">
-            <span class="category-chip">{{ row.categoryName || '未分类' }}</span>
+            <button
+              v-if="row.categoryName"
+              type="button"
+              class="category-chip"
+              :title="`只看「${row.categoryName}」分类`"
+              @click="filterByCategory(row)"
+            >
+              {{ row.categoryName }}
+            </button>
+            <span v-else class="category-chip">未分类</span>
           </template>
         </el-table-column>
 
@@ -464,10 +494,16 @@ onMounted(async () => {
 .category-chip {
   display: inline-block;
   padding: 3px 10px;
+  border: none;
   border-radius: 999px;
   color: #7a5436;
   font-size: 12px;
+  font-family: inherit;
   background: #ecdec5;
+}
+
+button.category-chip {
+  cursor: pointer;
 }
 
 .time-text {

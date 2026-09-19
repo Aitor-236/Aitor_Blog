@@ -196,7 +196,12 @@ async function handleLogout() {
   gap: 20px;
   min-height: 100vh;
   padding: 20px;
-  overflow-x: hidden;
+  /*
+   * 这里必须用 clip 而不是 hidden：overflow-x: hidden 会把 overflow-y 算成 auto，
+   * 于是这个 flex 容器自己变成滚动容器，左侧导航的 position: sticky 就失效、跟着页面一起滚出屏幕。
+   * clip 同样能挡住横向溢出，但不会创建滚动容器。
+   */
+  overflow-x: clip;
   background: var(--bg-cream);
 }
 

@@ -12,9 +12,10 @@ public interface ArticleService {
      * @param size         每页条数
      * @param categorySlug 分类英文标识，为空表示不筛选
      * @param keyword      标题/摘要关键字，为空表示不筛选
+     * @param tagName      标签名称，为空表示不筛选
      * @return 文章卡片分页结果
      */
-    Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword);
+    Page<ArticleVO> listPublished(long page, long size, String categorySlug, String keyword, String tagName);
 
     /**
      * 查询单篇已发布文章的详情。

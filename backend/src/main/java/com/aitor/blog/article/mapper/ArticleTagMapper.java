@@ -27,6 +27,19 @@ public interface ArticleTagMapper extends BaseMapper<ArticleTag> {
     List<String> selectTagNamesByArticleId(@Param("articleId") Long articleId);
 
     /**
+     * 批量查询一批文章的标签名，供列表卡片一次补齐标签，避免按文章逐条查。
+     * 文章ID集合不能为空，调用前先判空。
+     */
+    @Select("<script>"
+            + "SELECT atg.article_id AS article_id, t.name AS name FROM tag t "
+            + "JOIN article_tag atg ON atg.tag_id = t.id "
+            + "WHERE atg.article_id IN "
+            + "<foreach collection='articleIds' item='articleId' open='(' separator=',' close=')'>#{articleId}</foreach> "
+            + "ORDER BY t.id"
+            + "</script>")
+    List<Map<String, Object>> selectTagNamesByArticleIds(@Param("articleIds") Collection<Long> articleIds);
+
+    /**
      * 统计一批标签分别被多少篇文章引用（草稿和已发布都算），
      * 供后台标签列表展示使用量。标签ID集合不能为空，调用前先判空。
      */
