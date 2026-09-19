@@ -184,7 +184,7 @@ onMounted(loadTags)
       <div>
         <h1 class="admin-page-title">标签管理</h1>
         <p class="admin-page-subtitle">
-          共 {{ total }} 个标签，用于给文章做关键词归类；删除标签时文章上的关联会一并清理
+          共 {{ total }} 个标签，按创建时间倒序展示
         </p>
       </div>
 

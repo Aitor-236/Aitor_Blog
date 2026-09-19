@@ -415,7 +415,7 @@ onMounted(async () => {
               · 发布于 {{ formatDateTime(meta.publishedAt) }}
             </template>
           </template>
-          <template v-else>正文用 Markdown 编写，保存草稿后可以随时回来继续写</template>
+          <template v-else>正文用 Markdown 编写</template>
         </p>
       </div>
 

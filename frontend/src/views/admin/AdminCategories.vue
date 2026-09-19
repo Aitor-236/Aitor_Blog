@@ -158,7 +158,7 @@ onMounted(loadCategories)
       <div>
         <h1 class="admin-page-title">分类管理</h1>
         <p class="admin-page-subtitle">
-          共 {{ categories.length }} 个分类，按排序值展示；点任意一行可以看该分类的文章，分类下还有文章时不能删除
+          共 {{ categories.length }} 个分类，按排序值展示
         </p>
       </div>
 
