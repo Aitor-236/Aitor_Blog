@@ -54,12 +54,32 @@ else
     COMPOSE=(docker compose)
 fi
 
+# 读取 .env，但**已经存在的环境变量优先**（和 docker compose 的规则一致）：
+# 直接 `set -a; . .env` 会把命令行传入的变量覆盖成 .env 里的空值，
+# 导致 `BLOG_ACCOUNT_PASSWORD=xxx ./deploy.sh account` 这类用法失效。
 load_env() {
     [ -f "$ENV_FILE" ] || return 0
-    set -a
-    # shellcheck disable=SC1090
-    . "$ENV_FILE"
-    set +a
+    local line key value
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            ''|\#*) continue ;;
+            *=*) ;;
+            *) continue ;;
+        esac
+        key="${line%%=*}"
+        value="${line#*=}"
+        key="${key//[[:space:]]/}"
+        value="${value%$'\r'}"
+        # 去掉成对的引号（.env.example 里 JAVA_OPTS 那种带空格的值会加引号）
+        case "$value" in
+            \"*\") value="${value#\"}"; value="${value%\"}" ;;
+            \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        esac
+        [ -n "$key" ] || continue
+        if [ -z "${!key:-}" ]; then
+            export "$key=$value"
+        fi
+    done < "$ENV_FILE"
 }
 
 gen_secret() {
@@ -85,12 +105,44 @@ wait_for_mysql() {
     die "等待 MySQL 超时，用 './deploy.sh logs mysql' 查看日志"
 }
 
+# 等所有服务通过健康检查再返回：`compose up -d` 返回时容器只是 start 了，
+# 前端 Nginx / 后端 Tomcat 还要几秒才真正可用，脚本这里等一下就绪状态，
+# 免得部署完立刻访问拿到 502 或 connection reset。
+wait_for_healthy() {
+    local timeout="${1:-180}"
+    local deadline=$((SECONDS + timeout))
+    log "等待容器就绪（最多 ${timeout}s）"
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        local ids pending=0 id status
+        ids="$("${COMPOSE[@]}" ps -q 2>/dev/null || true)"
+        if [ -z "$ids" ]; then
+            sleep 2
+            continue
+        fi
+        for id in $ids; do
+            status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null || echo unknown)"
+            case "$status" in
+                healthy|running) ;;
+                starting|created|unknown) pending=1 ;;
+                *) die "有容器处于 $status 状态，用 './deploy.sh logs' 看日志" ;;
+            esac
+        done
+        if [ "$pending" -eq 0 ]; then
+            log "全部容器已就绪"
+            return 0
+        fi
+        sleep 2
+    done
+    warn "等待 ${timeout}s 后仍有容器未就绪，继续往下走，请用 './deploy.sh logs' 检查"
+    return 1
+}
+
 # 把 SQL 通过容器内的 mysql 客户端执行，宿主机不需要装 MySQL 客户端
 mysql_exec() {
     local database="$1"
     local sql="$2"
     "${COMPOSE[@]}" exec -T mysql sh -c \
-        'exec mysql --user=root --password="$MYSQL_ROOT_PASSWORD" --database="$1"' _ "$database" <<<"$sql"
+        'exec mysql --default-character-set=utf8mb4 --user=root --password="$MYSQL_ROOT_PASSWORD" --database="$1"' _ "$database" <<<"$sql"
 }
 
 # 转义 SQL 字符串里的反斜杠和单引号
@@ -133,6 +185,7 @@ cmd_up() {
     load_env
     log "构建镜像并启动服务"
     "${COMPOSE[@]}" up -d --build --remove-orphans
+    wait_for_healthy
     cmd_status
 }
 
@@ -147,6 +200,7 @@ cmd_restart() {
     require_docker
     load_env
     "${COMPOSE[@]}" restart "$@"
+    wait_for_healthy
     cmd_status
 }
 
@@ -174,7 +228,7 @@ import_sql_file() {
     [ -f "$file" ] || die "找不到 SQL 文件：$1"
     log "导入 $(basename "$file")"
     "${COMPOSE[@]}" exec -T mysql \
-        sh -c 'exec mysql --user=root --password="$MYSQL_ROOT_PASSWORD"' < "$file"
+        sh -c 'exec mysql --default-character-set=utf8mb4 --user=root --password="$MYSQL_ROOT_PASSWORD"' < "$file"
 }
 
 cmd_init_db() {
@@ -257,7 +311,7 @@ cmd_backup() {
 
     log "导出数据库 $(db_name)"
     "${COMPOSE[@]}" exec -T mysql sh -c \
-        'exec mysqldump --single-transaction --quick --databases "$MYSQL_DATABASE" --user=root --password="$MYSQL_ROOT_PASSWORD"' \
+        'exec mysqldump --default-character-set=utf8mb4 --single-transaction --quick --databases "$MYSQL_DATABASE" --user=root --password="$MYSQL_ROOT_PASSWORD"' \
         > "$dir/blog_db.sql"
 
     log "打包上传目录（头像、正文配图）"

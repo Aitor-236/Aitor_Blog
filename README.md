@@ -236,7 +236,8 @@ npm run format              # Prettier 格式化
 | `backend/src/main/resources/application-docker.yml` | `docker` profile：数据库、JWT、上传目录从环境变量读取 |
 | `frontend/Dockerfile` | 多阶段构建：Node 构建（含 `vue-tsc` 类型检查）→ Nginx 托管 |
 | `frontend/nginx.conf` | SPA history 回退 + `/api` 反代到后端容器（去掉 `/api` 前缀） |
-| `deploy.sh` | 服务器一键脚本：`init` / `up` / `account` / `backup` / `logs` / `update` … |
+| `docker/mysql-client.cnf` | 挂进 MySQL 容器的客户端配置，把 `mysql` / `mysqldump` 的字符集固定成 utf8mb4（不加会把中文种子数据写成乱码） |
+| `deploy.sh` | 服务器一键脚本：`init` / `up` / `account` / `backup` / `logs` / `update` …；`up` 会等到所有容器健康检查通过才返回 |
 | `.env.example` | 部署配置模板，复制成 `.env` 使用（`.env` 已被 gitignore 忽略） |
 
 #### 1. 生成配置
@@ -306,6 +307,8 @@ docker compose run --rm --no-deps -T --user root \
 | 页面能开，接口 502 | 后端还没起来或启动失败：`./deploy.sh logs backend`（常见是 `.env` 里密码/密钥没配） |
 | 登录报"用户名或密码错误" | 还没建账号，先跑 `./deploy.sh account` |
 | 老库升级后缺新增的列 | `./deploy.sh init-db sql/user_schema.sql`（脚本幂等，可重复执行） |
+| 分类名 / 标签名显示成 `å‰ç«¯` 这类乱码 | 客户端字符集不是 utf8mb4：确认 `docker/mysql-client.cnf` 已按 compose 挂进 `/etc/mysql/conf.d/`，然后 `./deploy.sh down -v` + `./deploy.sh up` 重新初始化（已有数据要用 `SET NAMES utf8mb4` 的导出重灌） |
+| 构建时卡在 `docker.io/docker/dockerfile` 超时 | 国内网络拉不到 Docker Hub 的 frontend 镜像：本项目已刻意不写 `# syntax=` 指令；若你自己新写的 Dockerfile 加了，删掉或给守护进程配镜像加速 / 代理 |
 | CentOS / RHEL 上挂载 SQL 失败 | SELinux 限制：给 `docker-compose.yml` 里 `./sql/init_database.sql` 的挂载加上 `:ro,Z` |
 
 ### 不用 Docker 的手动部署

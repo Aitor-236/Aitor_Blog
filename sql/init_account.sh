@@ -140,16 +140,16 @@ if [ -n "$DB_PASSWORD" ]; then
     export MYSQL_PWD="$DB_PASSWORD"
 fi
 
-mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$SQL"
+mysql --default-character-set=utf8mb4 --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$SQL"
 
 # 单独跑一次站长提升：老库补 role 列后也能靠这步确定站长
-mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$PROMOTE_SQL"
+mysql --default-character-set=utf8mb4 --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" --database="$DB_NAME" --execute="$PROMOTE_SQL"
 
 echo "账号已写入 $DB_NAME.sys_user：$USERNAME <$EMAIL>"
 
 # 回读并校验哈希，确保密码真的能对应上
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import bcrypt' >/dev/null 2>&1; then
-    STORED="$(mysql --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" \
+    STORED="$(mysql --default-character-set=utf8mb4 --host="$DB_HOST" --port="$DB_PORT" --user="$DB_USER" \
         --database="$DB_NAME" --batch --skip-column-names \
         --execute="SELECT password FROM sys_user WHERE username = '$(sql_escape "$USERNAME")';")"
     BLOG_PLAIN_PW="$PASSWORD" BLOG_STORED_HASH="$STORED" python3 -c \

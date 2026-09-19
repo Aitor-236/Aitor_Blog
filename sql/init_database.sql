@@ -14,6 +14,10 @@
 --   - 注意：文章模块表结构变更时，本文件与 article_schema.sql 需要同步修改。
 -- ============================================================
 
+-- 显式声明脚本与连接都用 utf8mb4：否则在某些 locale 下 mysql 客户端会退回
+-- latin1，本文件里的中文（分类名 / 列注释）会被双重编码成乱码。
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS blog_db
     DEFAULT CHARACTER SET utf8mb4
     DEFAULT COLLATE utf8mb4_unicode_ci;

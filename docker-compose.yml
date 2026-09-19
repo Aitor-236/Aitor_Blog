@@ -26,6 +26,9 @@ services:
       - mysql-data:/var/lib/mysql
       # 只在数据卷为空（首次启动）时自动执行一次：建库 + 建表，不预置任何账号
       - ./sql/init_database.sql:/docker-entrypoint-initdb.d/01-init_database.sql:ro
+      # 固定客户端字符集为 utf8mb4，否则容器 locale 是 POSIX、客户端退回 latin1，
+      # 建表脚本里的中文（分类名、列注释）会被写成乱码
+      - ./docker/mysql-client.cnf:/etc/mysql/conf.d/zz-client-charset.cnf:ro
     ports:
       # 只绑定回环地址，给服务器本机的客户端 / 隧道用，不对公网开放
       - "${BLOG_DB_BIND:-127.0.0.1}:${BLOG_DB_PORT:-13306}:3306"

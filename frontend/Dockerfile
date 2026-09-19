@@ -1,10 +1,10 @@
-# syntax=docker/dockerfile:1
 # ============================================================
 # Aitor Blog 前端镜像：多阶段构建
 #   1. builder  —— Node 里跑 npm ci + npm run build（含 vue-tsc 类型检查）
 #   2. runtime  —— Nginx 托管 dist/，并把 /api 反代到后端容器
 # 构建（在仓库根目录执行）：
 #   docker build -t aitor-blog-frontend ./frontend
+# 注意：刻意不写 `# syntax=docker/dockerfile:1`，理由见 backend/Dockerfile。
 # ============================================================
 
 # ---------- 1. 构建阶段 ----------

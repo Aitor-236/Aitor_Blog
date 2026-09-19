@@ -1,0 +1,13 @@
+# ============================================================
+# MySQL 客户端默认字符集（挂进容器的 /etc/mysql/conf.d/）
+#
+# 为什么需要它：官方 mysql 镜像的 locale 是 POSIX，mysql / mysqldump 客户端
+# 会因此把默认字符集退回 latin1（MySQL 的 latin1 实际是 cp1252）。
+# 这样官方 entrypoint 执行 sql/init_database.sql 时，脚本里的中文种子数据
+# （分类名）会被按 cp1252 解释，落库变成双重编码的乱码。
+#
+# 容器里的 /etc/my.cnf 有 `!includedir /etc/mysql/conf.d/`，
+# 所以这个文件会被 mysql、mysqladmin、mysqldump 一起读到。
+# ============================================================
+[client]
+default-character-set = utf8mb4

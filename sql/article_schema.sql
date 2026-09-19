@@ -89,3 +89,5 @@ VALUES
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     sort_order = VALUES(sort_order);
+-- 显式声明脚本与连接都用 utf8mb4，避免中文种子数据被按 latin1 双重编码。
+SET NAMES utf8mb4;

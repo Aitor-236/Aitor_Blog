@@ -66,3 +66,5 @@ SET role = 'owner'
 WHERE @owner_exists = 0
   AND @first_user_id IS NOT NULL
   AND id = @first_user_id;
+-- 显式声明脚本与连接都用 utf8mb4，避免中文列注释 / 数据被按 latin1 双重编码。
+SET NAMES utf8mb4;
