@@ -1,0 +1,11 @@
+# 宿主机上的依赖和产物，镜像里重新装、重新构建
+node_modules
+dist
+dist-ssr
+
+# 开发工具残留与日志
+.vscode
+.idea
+*.log
+*.timestamp-*-*.mjs
+coverage

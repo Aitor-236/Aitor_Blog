@@ -1,0 +1,107 @@
+# ============================================================
+# Aitor Blog 服务器部署编排：MySQL + 后端 + 前端(Nginx)
+# 用法（在仓库根目录）：
+#   cp .env.example .env   # 或 ./deploy.sh init 自动生成随机密钥
+#   docker compose up -d --build
+#   浏览器访问 http://<服务器IP>/       后台 http://<服务器IP>/login
+# 更省事的方式是直接用仓库根的 ./deploy.sh（见该脚本的帮助）。
+# ============================================================
+name: aitor-blog
+
+services:
+  # ---------- MySQL 8.4 ----------
+  mysql:
+    image: mysql:8.4
+    container_name: aitor-blog-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${BLOG_DB_NAME:-blog_db}
+      TZ: Asia/Shanghai
+    volumes:
+      # 数据持久化：删除容器不丢数据，重建容器也不会重新初始化
+      - mysql-data:/var/lib/mysql
+      # 只在数据卷为空（首次启动）时自动执行一次：建库 + 建表，不预置任何账号
+      - ./sql/init_database.sql:/docker-entrypoint-initdb.d/01-init_database.sql:ro
+    ports:
+      # 只绑定回环地址，给服务器本机的客户端 / 隧道用，不对公网开放
+      - "${BLOG_DB_BIND:-127.0.0.1}:${BLOG_DB_PORT:-13306}:3306"
+    healthcheck:
+      # 必须用 TCP：初始化阶段 MySQL 只监听 socket，避免后端在初始化完成前启动
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --protocol=tcp --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - blog-net
+
+  # ---------- Spring Boot 后端 ----------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: aitor-blog-backend:${BLOG_IMAGE_TAG:-latest}
+    container_name: aitor-blog-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 激活 backend/src/main/resources/application-docker.yml
+      SPRING_PROFILES_ACTIVE: docker
+      BLOG_DB_URL: "jdbc:mysql://mysql:3306/${BLOG_DB_NAME:-blog_db}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false"
+      BLOG_DB_USER: ${BLOG_DB_USER:-root}
+      BLOG_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      BLOG_JWT_SECRET: ${BLOG_JWT_SECRET:?请在 .env 中设置 BLOG_JWT_SECRET}
+      BLOG_JWT_EXPIRE_TIME: ${BLOG_JWT_EXPIRE_TIME:-86400000}
+      BLOG_UPLOAD_DIR: /app/uploads
+      JAVA_OPTS: "${JAVA_OPTS:--XX:MaxRAMPercentage=75 -Duser.timezone=Asia/Shanghai}"
+      TZ: Asia/Shanghai
+    volumes:
+      # 头像与正文配图必须持久化，否则重建容器后图片全丢
+      - uploads-data:/app/uploads
+    healthcheck:
+      # 镜像里没有 curl/wget，用 bash 的 /dev/tcp 探一下端口
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - blog-net
+
+  # ---------- Nginx 前端 + API 反向代理 ----------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: aitor-blog-frontend:${BLOG_IMAGE_TAG:-latest}
+    container_name: aitor-blog-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      # 唯一的对外端口；80 被占用时在 .env 里改 BLOG_HTTP_PORT
+      - "${BLOG_HTTP_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - blog-net
+
+volumes:
+  mysql-data:
+  uploads-data:
+
+networks:
+  blog-net:
+    driver: bridge

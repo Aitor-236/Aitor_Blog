@@ -3,3 +3,11 @@
 
 ### 上传文件（头像等），运行时产物不入库 ###
 backend/uploads/
+
+### Docker 部署配置：含数据库密码与 JWT 密钥，绝对不入库 ###
+.env
+.env.local
+!.env.example
+
+### 部署备份产物（./deploy.sh backup 生成） ###
+backups/

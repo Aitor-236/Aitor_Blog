@@ -1,0 +1,22 @@
+# ============================================================
+# Docker / 生产环境配置（由 SPRING_PROFILES_ACTIVE=docker 激活）
+# 所有敏感项都从环境变量读取，见仓库根目录 .env.example 与 docker-compose.yml。
+# 镜像里不含任何密码，换服务器只要改 .env 即可。
+# ============================================================
+spring:
+    datasource:
+        # 容器间用服务名 mysql 互访；关闭 SSL 与开启 allowPublicKeyRetrieval 仅适用于内网连接
+        url: ${BLOG_DB_URL:jdbc:mysql://mysql:3306/blog_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}
+        username: ${BLOG_DB_USER:root}
+        password: ${BLOG_DB_PASSWORD:}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+
+jwt:
+    # 生产环境必须替换成自己的随机串，否则任何人都能伪造 token
+    secret-key: ${BLOG_JWT_SECRET:please-change-this-secret-key}
+    expire-time: ${BLOG_JWT_EXPIRE_TIME:86400000}
+
+blog:
+    upload:
+        # 头像与正文配图的落盘目录，compose 里挂成数据卷持久化
+        dir: ${BLOG_UPLOAD_DIR:/app/uploads}

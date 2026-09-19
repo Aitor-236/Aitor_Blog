@@ -1,0 +1,14 @@
+# 构建产物与本地依赖，交给镜像内的 Maven 重新生成
+target/
+
+# 本地上传的头像 / 正文配图，不进镜像（运行时由数据卷提供）
+uploads/
+
+# 本地开发配置里含真实数据库密码和 JWT 密钥，绝对不能打进镜像
+src/main/resources/application-local.yml
+
+# 开发工具残留
+HELP.md
+.idea/
+.vscode/
+*.iml

@@ -4,6 +4,8 @@
 # 用法：
 #   ./sql/init_account.sh                              # 交互式输入用户名、邮箱、密码
 #   ./sql/init_account.sh aitor aitor.x@outlook.com     # 用户名邮箱走参数，密码仍交互输入
+#   ./sql/init_account.sh --print-hash                  # 只生成 BCrypt 哈希并打印，不连数据库
+#                                                      # （Docker 部署时由 ./deploy.sh account 调用）
 # 连接信息可用环境变量覆盖（默认与 application-local.yml.template 保持一致）：
 #   BLOG_DB_HOST（默认 127.0.0.1）
 #   BLOG_DB_PORT（默认 3306）
@@ -27,6 +29,45 @@ DB_PASSWORD="${BLOG_DB_PASSWORD:-}"
 
 USERNAME="${1:-}"
 EMAIL="${2:-}"
+
+# 生成 BCrypt 哈希（$2b$10$，与后端 BCryptPasswordEncoder 默认强度一致）
+# 密码通过环境变量传给 python，避免出现在进程命令行里被 ps 看到
+hash_password() {
+    local plain="$1"
+    if command -v python3 >/dev/null 2>&1 && python3 -c 'import bcrypt' >/dev/null 2>&1; then
+        BLOG_PLAIN_PW="$plain" python3 -c \
+            'import bcrypt, os; print(bcrypt.hashpw(os.environ["BLOG_PLAIN_PW"].encode(), bcrypt.gensalt(rounds=10, prefix=b"2b")).decode())'
+    elif command -v htpasswd >/dev/null 2>&1; then
+        # htpasswd 生成的是 $2y$ 前缀，Spring Security 同样支持
+        htpasswd -bnBC 10 "" "$plain" | tr -d ':\n' | sed 's/^\$2y\$/\$2b\$/'
+    else
+        return 1
+    fi
+}
+
+# --print-hash：只算哈希给别的脚本用（Docker 部署时宿主机算、容器里只写库），
+# 所以这个分支必须放在「检查 mysql 客户端」之前，也不需要连数据库。
+if [ "$USERNAME" = "--print-hash" ]; then
+    PASSWORD="${BLOG_ACCOUNT_PASSWORD:-}"
+    if [ -z "$PASSWORD" ]; then
+        read -r -s -p "密码: " PASSWORD
+        echo
+    fi
+    if [ -z "$PASSWORD" ]; then
+        echo "错误：密码不能为空。" >&2
+        exit 1
+    fi
+    if ! HASH_OUT="$(hash_password "$PASSWORD")"; then
+        cat >&2 <<'MSG'
+错误：没法生成 BCrypt 哈希，请先安装任一依赖再重试：
+  - Python：pip install bcrypt
+  - 或 apache2-utils：apt install apache2-utils
+MSG
+        exit 1
+    fi
+    printf '%s\n' "$HASH_OUT"
+    exit 0
+fi
 
 if ! command -v mysql >/dev/null 2>&1; then
     echo "错误：找不到 mysql 客户端，请先安装 MySQL 客户端。" >&2
@@ -67,21 +108,6 @@ if [ -z "$PASSWORD" ]; then
     echo "错误：密码不能为空。" >&2
     exit 1
 fi
-
-# 生成 BCrypt 哈希（$2b$10$，与后端 BCryptPasswordEncoder 默认强度一致）
-# 密码通过环境变量传给 python，避免出现在进程命令行里被 ps 看到
-hash_password() {
-    local plain="$1"
-    if command -v python3 >/dev/null 2>&1 && python3 -c 'import bcrypt' >/dev/null 2>&1; then
-        BLOG_PLAIN_PW="$plain" python3 -c \
-            'import bcrypt, os; print(bcrypt.hashpw(os.environ["BLOG_PLAIN_PW"].encode(), bcrypt.gensalt(rounds=10, prefix=b"2b")).decode())'
-    elif command -v htpasswd >/dev/null 2>&1; then
-        # htpasswd 生成的是 $2y$ 前缀，Spring Security 同样支持
-        htpasswd -bnBC 10 "" "$plain" | tr -d ':\n' | sed 's/^\$2y\$/\$2b\$/'
-    else
-        return 1
-    fi
-}
 
 if ! HASH="$(hash_password "$PASSWORD")"; then
     cat >&2 <<'MSG'

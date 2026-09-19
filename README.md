@@ -19,25 +19,43 @@
 ```
 Aitor_Blog/
 ├── backend/                      # Spring Boot 后端，端口 8080
-│   └── src/main/java/com/aitor/blog/
-│       ├── auth/                 # 登录：AuthController / AuthService / SysUser
-│       ├── article/              # 文章、分类、标签（含 admin 侧接口）
-│       ├── common/               # Result、BusinessException、JwtInterceptor、JwtUtil、PageParam
-│       └── config/               # SecurityConfig、WebMvcConfig、MybatisPlusConfig、JwtProperties
+│   ├── Dockerfile                # 多阶段构建：Maven 编译 → JRE 21 运行（非 root）
+│   └── src/main/                 # java/com/aitor/blog + resources
+│       ├── java/.../auth/        # 登录：AuthController / AuthService / SysUser
+│       ├── java/.../article/     # 文章、分类、标签（含 admin 侧接口）
+│       ├── java/.../common/      # Result、BusinessException、JwtInterceptor、JwtUtil、PageParam
+│       ├── java/.../config/      # SecurityConfig、WebMvcConfig、MybatisPlusConfig、JwtProperties
+│       └── resources/
+│           ├── application.yml            # 公共配置（端口、上传上限）
+│           ├── application-docker.yml     # 容器部署：配置全部读环境变量
+│           └── application-local.yml      # 本地开发配置（gitignore，不进仓库/镜像）
 ├── frontend/                     # Vue 3 前端
+│   ├── Dockerfile                # 多阶段构建：Node 构建 → Nginx 托管
+│   ├── nginx.conf                # SPA 回退 + /api 反代到后端容器
 │   └── src/
 │       ├── views/                # 前台页面：Home / Articles / ArticleDetail / Gallery / About / Login
 │       ├── views/admin/          # 后台页面：文章、分类、标签、个人管理 + AdminLayout
 │       ├── components/DockNav.vue
 │       ├── router/index.ts
 │       └── utils/request.ts      # axios 实例（baseURL = /api）
-└── sql/                          # 建库与账号脚本
+├── sql/                          # 建库与账号脚本
     ├── init_database.sql         # 全新部署：建库 + 建表（不含任何用户）
     ├── article_schema.sql        # 已有数据库的增量升级脚本
+    ├── user_schema.sql           # 用户表增量升级（avatar / role 两列）
     └── init_account.sh           # 创建 / 重置登录账号（生成 BCrypt 哈希）
+├── docker-compose.yml            # 服务器部署编排：MySQL + 后端 + 前端
+├── deploy.sh                     # 一键部署 / 运维脚本（init / up / account / backup …）
+└── .env.example                  # 部署配置模板（复制成 .env 后使用，.env 不入库）
 ```
 
 ## 环境要求
+
+用 Docker 部署（推荐）：
+
+- Docker Engine 20.10+ 与 `docker compose`（v2 插件；`deploy.sh` 也兼容老的 `docker-compose` 命令）
+- 其余什么都不用装，JDK / Node / MySQL 都在容器里
+
+本地开发：
 
 - JDK 21+
 - MySQL 8+
@@ -120,12 +138,13 @@ Vite 默认跑在 `http://localhost:5173`，并把 `/api` 开头的请求代理�
 
 | 配置 | 位置 | 说明 |
 | --- | --- | --- |
-| `spring.datasource.*` | `backend/src/main/resources/application-local.yml` | MySQL 连接信息，库名固定 `blog_db` |
+| `spring.datasource.*` | 本地：`backend/src/main/resources/application-local.yml`；Docker：`.env` + `application-docker.yml` | MySQL 连接信息，库名固定 `blog_db` |
 | `jwt.secret-key` | 同上 | HS256 签名密钥，生产环境务必替换 |
 | `jwt.expire-time` | 同上 | token 有效期（毫秒），模板默认 24 小时 |
 | `server.port` | `backend/src/main/resources/application.yml` | 后端端口，默认 8080 |
-| `blog.upload.dir` | 同上 | 上传文件（头像、正文配图）的落盘目录，默认 `./uploads`，相对后端运行目录 |
-| `/api` 代理目标 | `frontend/vite.config.ts` | 开发环境的后端地址，默认 `http://localhost:8080` |
+| `blog.upload.dir` | 同上 | 上传文件（头像、正文配图）的落盘目录，默认 `./uploads`；容器里是 `/app/uploads`（数据卷） |
+| `/api` 代理目标 | `frontend/vite.config.ts`（开发）、`frontend/nginx.conf`（生产） | 后端地址，默认 `http://localhost:8080` / `http://backend:8080` |
+| `MYSQL_ROOT_PASSWORD`、`BLOG_JWT_SECRET`、`BLOG_HTTP_PORT` 等 | 仓库根 `.env`（模板 `.env.example`） | 只影响 Docker 部署，`./deploy.sh init` 会自动填入随机密钥 |
 
 ## 接口一览
 
@@ -191,21 +210,116 @@ npm run dev                 # 启动开发服务器
 npm run build               # 类型检查 + 打包，产物在 dist/
 npm run preview             # 预览打包结果
 npm run format              # Prettier 格式化
+
+# Docker（在仓库根目录）
+./deploy.sh init            # 生成 .env（随机 MySQL 密码 + JWT 密钥）
+./deploy.sh up              # 构建镜像并启动 MySQL / 后端 / 前端
+./deploy.sh account         # 创建 / 重置后台登录账号
+./deploy.sh status          # 容器状态 + 访问地址
+./deploy.sh logs backend    # 跟日志（默认全部服务）
+./deploy.sh update          # git pull + 重建 + 重启（数据卷保留）
+./deploy.sh backup          # 备份数据库与上传文件
+./deploy.sh down            # 停止并删除容器（数据卷保留）
+./deploy.sh help            # 查看全部命令
 ```
 
 ## 生产部署
 
-仓库里没有部署配置，需要自己准备：
+### Docker Compose 部署（推荐）
 
-1. 前端执行 `npm run build`，把 `frontend/dist/` 交给 Nginx 之类托管；后端执行 `./mvnw clean package` 得到可执行 jar，用 `java -jar` 运行。
-2. 生产环境同样要把 `/api` 反向代理到后端并去掉 `/api` 前缀，否则前端请求会全部 404。
-3. `jwt.secret-key`、MySQL 密码不要沿用开发环境的值，`application-local.yml` 也不建议直接打进镜像。
+仓库自带镜像定义和编排文件，服务器只要有 Docker 就能一条龙跑起来：
+
+| 文件 | 作用 |
+| --- | --- |
+| `docker-compose.yml` | 编排 MySQL 8.4 + 后端 + 前端（Nginx），含健康检查、启动顺序和数据卷 |
+| `backend/Dockerfile` | 多阶段构建：Maven 编译 → JRE 21 运行，非 root 用户，配置全部走环境变量 |
+| `backend/src/main/resources/application-docker.yml` | `docker` profile：数据库、JWT、上传目录从环境变量读取 |
+| `frontend/Dockerfile` | 多阶段构建：Node 构建（含 `vue-tsc` 类型检查）→ Nginx 托管 |
+| `frontend/nginx.conf` | SPA history 回退 + `/api` 反代到后端容器（去掉 `/api` 前缀） |
+| `deploy.sh` | 服务器一键脚本：`init` / `up` / `account` / `backup` / `logs` / `update` … |
+| `.env.example` | 部署配置模板，复制成 `.env` 使用（`.env` 已被 gitignore 忽略） |
+
+#### 1. 生成配置
+
+```bash
+git clone <你的仓库地址> Aitor_Blog && cd Aitor_Blog
+./deploy.sh init        # 生成 .env：随机 MySQL 密码 + 随机 JWT 密钥，权限 600
+```
+
+`.env` 里通常只需要按需调整端口：
+
+```ini
+MYSQL_ROOT_PASSWORD=<自动生成的随机串>
+BLOG_JWT_SECRET=<自动生成的随机串>
+BLOG_HTTP_PORT=80        # 站点对外端口，80 被占用就改成 8081 之类
+BLOG_DB_PORT=13306       # MySQL 映射到宿主机的端口（只绑 127.0.0.1）
+BLOG_DB_NAME=blog_db
+```
+
+#### 2. 启动服务
+
+```bash
+./deploy.sh up          # 等价于 docker compose up -d --build
+```
+
+首次启动时 MySQL 会自动执行 `sql/init_database.sql` 建库建表（只在数据卷为空时执行一次，不预置账号），后端会等 MySQL 健康检查通过再启动。起来之后：
+
+- 前台：`http://<服务器IP>/`（改了端口就是 `http://<服务器IP>:8081/`）
+- 后台：`http://<服务器IP>/login`
+
+#### 3. 创建后台登录账号
+
+```bash
+./deploy.sh account     # 交互式输入用户名 / 邮箱 / 密码
+```
+
+BCrypt 哈希在宿主机生成（依赖 `python3` + `bcrypt` 或 `apache2-utils` 的 `htpasswd`），容器里只执行一次 `INSERT`，明文密码不会进容器、也不进日志。把 `BLOG_ACCOUNT_USERNAME` / `BLOG_ACCOUNT_EMAIL` / `BLOG_ACCOUNT_PASSWORD` 写进 `.env` 后，这个命令可以全自动执行，适合放进部署流水线。
+
+#### 4. 数据、备份与恢复
+
+- 数据都在两个命名卷里：`aitor-blog_mysql-data`（数据库）和 `aitor-blog_uploads-data`（头像、正文配图）。`./deploy.sh down` 只删容器不动卷；只有 `docker compose down -v` 才会连数据一起删。
+- `./deploy.sh update` 重建容器（代码更新）不会影响卷，文章、账号、图片都还在。
+- `./deploy.sh backup` 在 `backups/<时间戳>/` 生成 `blog_db.sql`（整库导出）和 `uploads.tar.gz`，该目录已被 gitignore。
+
+恢复：
+
+```bash
+# 数据库
+docker compose exec -T mysql sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' \
+  < backups/<时间戳>/blog_db.sql
+
+# 上传文件
+docker compose run --rm --no-deps -T --user root \
+  -v ./backups/<时间戳>:/backup --entrypoint sh backend \
+  -c 'tar xzf /backup/uploads.tar.gz -C /app/uploads'
+```
+
+#### 5. 域名与 HTTPS
+
+容器内的 Nginx 只监听 HTTP，TLS 建议在它前面做：域名解析到服务器后，用宿主机 Nginx / Caddy / 云厂商负载均衡终止 HTTPS，再反代到 `127.0.0.1:${BLOG_HTTP_PORT}`（保留 `proxy_set_header Host $host;` 即可）。前端资源路径和 `/api` 都是同源相对路径，不需要因为域名或协议改动重新构建。
+
+#### 6. 常见问题
+
+| 现象 | 原因与处理 |
+| --- | --- |
+| `bind: address already in use` | 80 端口被别的服务占用，改 `.env` 里的 `BLOG_HTTP_PORT` 后 `./deploy.sh up` |
+| 页面能开，接口 502 | 后端还没起来或启动失败：`./deploy.sh logs backend`（常见是 `.env` 里密码/密钥没配） |
+| 登录报"用户名或密码错误" | 还没建账号，先跑 `./deploy.sh account` |
+| 老库升级后缺新增的列 | `./deploy.sh init-db sql/user_schema.sql`（脚本幂等，可重复执行） |
+| CentOS / RHEL 上挂载 SQL 失败 | SELinux 限制：给 `docker-compose.yml` 里 `./sql/init_database.sql` 的挂载加上 `:ro,Z` |
+
+### 不用 Docker 的手动部署
+
+1. 前端 `npm run build`，把 `frontend/dist/` 交给 Nginx 托管；后端 `./mvnw clean package` 得到可执行 jar，用 `java -jar` 运行。
+2. 生产环境要把 `/api` 反代到后端并去掉 `/api` 前缀（可直接参考 `frontend/nginx.conf`），否则前端请求会全部 404。
+3. `jwt.secret-key`、MySQL 密码不要沿用开发环境的值，`application-local.yml` 也不建议打进镜像（`backend/.dockerignore` 已排除）。
 4. 前端是 history 模式的 SPA，Nginx 需要配置回退（找不到文件时返回 `index.html`），否则直接刷新 `/articles/1` 这类地址会 404。
+5. 上传目录要可写并持久化，否则图片会在重装服务后丢失。
 
 ## 说明与待办
 
 - 画廊页（`/gallery`）和个人简介页（`/about`）目前是页面内静态数据，等后端接口就绪后再替换。
 - `sys_user.role` 目前只用来决定前台首页展示谁：优先级 `owner > admin > user`，同优先级取 `id` 最小的（最早注册的账号）。权限还没做，后台接口仍然只校验"是否登录"，任何登录用户都能进后台。升/降站长直接改这一列即可，例如 `UPDATE sys_user SET role = 'owner' WHERE username = 'xxx';`。
 - `article.author_id` 对齐 `sys_user.id` 使用**有符号** BIGINT，文章模块其余主键是 BIGINT UNSIGNED，新增外键列时注意类型不要写错。
-- 头像和正文配图都存放在 `blog.upload.dir`（默认 `backend/uploads/avatar/` 与 `backend/uploads/article/`，已加入 `.gitignore`），数据库只存 `/uploads/xxx/yyy.png` 这样的相对地址：头像由前端加 `/api` 前缀访问，正文里的图片由 `frontend/src/utils/markdown.ts` 在渲染时补上 `/api` 前缀（正文里手写 `/uploads/...` 也能正常显示）；部署时该目录要可写并且要持久化，否则图片会在重建容器后丢失。
+- 头像和正文配图都存放在 `blog.upload.dir`（默认 `backend/uploads/avatar/` 与 `backend/uploads/article/`，已加入 `.gitignore`），数据库只存 `/uploads/xxx/yyy.png` 这样的相对地址：头像由前端加 `/api` 前缀访问，正文里的图片由 `frontend/src/utils/markdown.ts` 在渲染时补上 `/api` 前缀（正文里手写 `/uploads/...` 也能正常显示）；部署时该目录要可写并且要持久化，否则图片会在重建容器后丢失（Docker 部署已由 `aitor-blog_uploads-data` 数据卷处理）。
 - `sql/init_database.sql` 与 `sql/article_schema.sql` 有一部分重复的建表语句（前者面向全新部署，后者面向文章模块的增量升级），修改表结构时两个文件都要同步；用户表所在的登录模块增量升级用 `sql/user_schema.sql`。
