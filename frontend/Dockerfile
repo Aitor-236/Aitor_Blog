@@ -22,6 +22,14 @@ RUN npm run build
 # ---------- 2. 运行阶段 ----------
 FROM nginx:alpine AS runtime
 
+# nginx:alpine 的 entrypoint 会跑 /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh，
+# 它用 `apk manifest nginx` 拉官方 APKINDEX 来比对 default.conf 校验和；国内 ECS 访问
+# dl-cdn.alpinelinux.org（Fastly）时 community 索引拉不下来，apk 又没超时，会让 entrypoint
+# 永久阻塞、nginx 从不启动、容器一直 unhealthy。我们的 nginx.conf 是完整静态配置，
+# 不需要这个脚本；顺手把 apk 源换成阿里云镜像，避免以后 apk add 再卡住。
+RUN rm -f /docker-entrypoint.d/10-listen-on-ipv6-by-default.sh \
+    && sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|' /etc/apk/repositories
+
 # 站点配置（SPA history 回退 + /api 反向代理）
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /build/dist /usr/share/nginx/html
