@@ -146,7 +146,6 @@ onBeforeRouteLeave(() => {
             <p>{{ article.summary }}</p>
             <footer class="card-footer">
               <time :datetime="article.publishedAt">{{ formatDate(article.publishedAt) }}</time>
-              <span>约 {{ article.readingMinutes }} 分钟</span>
             </footer>
           </router-link>
         </div>

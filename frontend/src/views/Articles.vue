@@ -320,9 +320,6 @@ onBeforeRouteLeave(() => {
                   {{ tag }}
                 </button>
               </div>
-              <footer class="article-footer">
-                <span>约 {{ article.readingMinutes }} 分钟读完</span>
-              </footer>
             </router-link>
           </div>
 

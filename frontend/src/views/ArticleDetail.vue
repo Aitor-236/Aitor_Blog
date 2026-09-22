@@ -117,7 +117,6 @@ watch(
             <time :datetime="article.publishedAt || undefined">
               {{ formatDate(article.publishedAt) }}
             </time>
-            <span>约 {{ article.readingMinutes }} 分钟</span>
           </div>
         </header>
 
