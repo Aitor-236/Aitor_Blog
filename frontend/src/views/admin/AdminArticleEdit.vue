@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
-import { ElInput, ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Picture } from '@element-plus/icons-vue'
+import {
+  ElInput,
+  ElMessage,
+  ElMessageBox,
+  ElSelect,
+  type FormInstance,
+  type FormRules
+} from 'element-plus'
+import { Picture, Plus } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import { renderMarkdown } from '@/utils/markdown'
 
@@ -71,6 +78,46 @@ const rules: FormRules<typeof form> = {
   categoryName: [{ required: true, message: '请选择文章分类', trigger: 'change' }]
 }
 
+/**
+ * 分类 / 标签下拉框最下面都固定一项「新增××」，点开的是这两个小弹窗：
+ * 先把新分类、新标签建进库里，再自动选中，免得在文章编辑器里手输一个库里没有的名字。
+ */
+const categorySelectRef = ref<InstanceType<typeof ElSelect> | null>(null)
+const tagSelectRef = ref<InstanceType<typeof ElSelect> | null>(null)
+
+const categoryDialogVisible = ref(false)
+const categorySubmitting = ref(false)
+const categoryFormRef = ref<FormInstance>()
+const categoryForm = ref({ categoryName: '', categoryIdentifier: '' })
+
+const categoryRules: FormRules<typeof categoryForm> = {
+  categoryName: [
+    { required: true, message: '请输入分类名称', trigger: 'blur' },
+    { max: 50, message: '分类名称不能超过 50 个字符', trigger: 'blur' }
+  ],
+  categoryIdentifier: [
+    { required: true, message: '请输入英文标识', trigger: 'blur' },
+    { max: 50, message: '英文标识不能超过 50 个字符', trigger: 'blur' },
+    {
+      pattern: /^[a-zA-Z0-9_-]+$/,
+      message: '英文标识只能用字母、数字、连字符或下划线',
+      trigger: 'blur'
+    }
+  ]
+}
+
+const tagDialogVisible = ref(false)
+const tagSubmitting = ref(false)
+const tagFormRef = ref<FormInstance>()
+const tagForm = ref({ name: '' })
+
+const tagRules: FormRules<typeof tagForm> = {
+  name: [
+    { required: true, message: '请输入标签名称', trigger: 'blur' },
+    { max: 50, message: '标签名称不能超过 50 个字符', trigger: 'blur' }
+  ]
+}
+
 /** 新建时为空，保存草稿成功后写入后端返回的ID */
 const articleId = ref<number | null>(null)
 const status = ref<'draft' | 'published'>('draft')
@@ -124,6 +171,70 @@ async function loadTags() {
   } catch {
     // 标签接口失败时仍然可以手写标签名，不阻塞编辑
     tagOptions.value = []
+  }
+}
+
+/** 打开新增分类弹窗：先收起下拉面板，否则面板会压在弹窗上面 */
+function openCategoryDialog() {
+  categorySelectRef.value?.blur()
+  categoryForm.value = { categoryName: '', categoryIdentifier: '' }
+  categoryDialogVisible.value = true
+  void nextTick(() => categoryFormRef.value?.clearValidate())
+}
+
+/** 新建分类后直接选中它，省得再展开一次下拉框 */
+async function submitCategory() {
+  const valid = await categoryFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  categorySubmitting.value = true
+  try {
+    const res = (await request.post('/admin/category/create', {
+      categoryName: categoryForm.value.categoryName.trim(),
+      categoryIdentifier: categoryForm.value.categoryIdentifier.trim()
+    })) as { data: CategoryItem }
+
+    categories.value = [...categories.value, res.data]
+    form.categoryName = res.data.name
+    categoryDialogVisible.value = false
+    ElMessage.success(`分类「${res.data.name}」已创建`)
+  } catch {
+    // 英文标识重复等业务失败由 request 拦截器弹出提示，这里保持弹窗打开方便修改
+  } finally {
+    categorySubmitting.value = false
+  }
+}
+
+/** 打开新增标签弹窗，同样先把下拉面板收起来 */
+function openTagDialog() {
+  tagSelectRef.value?.blur()
+  tagForm.value = { name: '' }
+  tagDialogVisible.value = true
+  void nextTick(() => tagFormRef.value?.clearValidate())
+}
+
+/** 新建标签后加进下拉选项并选中，编辑中的文章立刻带上这个标签 */
+async function submitTag() {
+  const valid = await tagFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  tagSubmitting.value = true
+  try {
+    const name = tagForm.value.name.trim()
+    const res = (await request.post('/admin/tag/create', { name })) as { data: AdminTagItem }
+
+    if (!tagOptions.value.includes(res.data.name)) {
+      tagOptions.value = [...tagOptions.value, res.data.name]
+    }
+    if (!form.tags.includes(res.data.name)) {
+      form.tags = [...form.tags, res.data.name]
+    }
+    tagDialogVisible.value = false
+    ElMessage.success(`标签「${res.data.name}」已创建`)
+  } catch {
+    // 标签重名等业务失败由 request 拦截器弹出提示，这里保持弹窗打开方便修改
+  } finally {
+    tagSubmitting.value = false
   }
 }
 
@@ -459,11 +570,12 @@ onMounted(async () => {
 
           <el-form-item label="文章分类" prop="categoryName">
             <el-select
+              ref="categorySelectRef"
               v-model="form.categoryName"
               class="category-select"
-              placeholder="选择分类，也可以直接输入新分类名"
+              popper-class="admin-select-popper"
+              placeholder="选择文章分类"
               filterable
-              allow-create
               default-first-option
             >
               <el-option
@@ -472,13 +584,24 @@ onMounted(async () => {
                 :label="category.name"
                 :value="category.name"
               />
+              <template #footer>
+                <button type="button" class="select-create" @click="openCategoryDialog">
+                  <el-icon><Plus /></el-icon>
+                  新增分类
+                </button>
+              </template>
+              <template #empty>
+                <p class="select-empty">没有匹配的分类，点下面的「新增分类」就能建一个</p>
+              </template>
             </el-select>
           </el-form-item>
 
           <el-form-item label="标签" prop="tags">
             <el-select
+              ref="tagSelectRef"
               v-model="form.tags"
               class="tag-select"
+              popper-class="admin-select-popper"
               multiple
               filterable
               allow-create
@@ -487,10 +610,13 @@ onMounted(async () => {
               placeholder="选择已有标签，或输入新标签后回车"
             >
               <el-option v-for="tag in tagOptions" :key="tag" :label="tag" :value="tag" />
+              <template #footer>
+                <button type="button" class="select-create" @click="openTagDialog">
+                  <el-icon><Plus /></el-icon>
+                  新增标签
+                </button>
+              </template>
             </el-select>
-            <p class="form-tip">
-              标签会显示在前台文章卡片和详情页，点标签可以筛出同类文章；留空表示这篇文章没有标签
-            </p>
           </el-form-item>
 
           <el-form-item label="正文（Markdown）" prop="content">
@@ -499,7 +625,7 @@ onMounted(async () => {
                 插入图片
               </el-button>
               <span class="content-toolbar-tip">
-                也可以直接粘贴或拖拽图片，支持 png / jpg / webp / gif，单张不超过 5MB
+                支持 png / jpg / webp / gif，单张不超过 5MB
               </span>
             </div>
 
@@ -560,6 +686,84 @@ onMounted(async () => {
         </section>
       </aside>
     </div>
+
+    <!-- 下拉框底部的「新增分类」：分类必须先在库里有，编辑器这边只负责选中 -->
+    <el-dialog
+      v-model="categoryDialogVisible"
+      title="新增分类"
+      width="440"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="categoryFormRef"
+        :model="categoryForm"
+        :rules="categoryRules"
+        label-position="top"
+        size="large"
+        @submit.prevent
+      >
+        <el-form-item label="分类名称" prop="categoryName">
+          <el-input
+            v-model="categoryForm.categoryName"
+            maxlength="50"
+            placeholder="例如：前端"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <el-form-item label="英文标识" prop="categoryIdentifier">
+          <el-input
+            v-model="categoryForm.categoryIdentifier"
+            maxlength="50"
+            placeholder="例如：frontend"
+            show-word-limit
+            @keyup.enter="submitCategory"
+          />
+          <p class="form-tip">用于前台地址栏筛选，创建后会自动选中这个分类</p>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button :disabled="categorySubmitting" @click="categoryDialogVisible = false">
+          取消
+        </el-button>
+        <el-button type="primary" :loading="categorySubmitting" @click="submitCategory">
+          创建
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 下拉框底部的「新增标签」：建好之后立刻挂到当前文章上 -->
+    <el-dialog
+      v-model="tagDialogVisible"
+      title="新增标签"
+      width="420"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="tagFormRef"
+        :model="tagForm"
+        :rules="tagRules"
+        label-position="top"
+        size="large"
+        @submit.prevent
+      >
+        <el-form-item label="标签名称" prop="name">
+          <el-input
+            v-model="tagForm.name"
+            maxlength="50"
+            placeholder="例如：Vue"
+            show-word-limit
+            @keyup.enter="submitTag"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button :disabled="tagSubmitting" @click="tagDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="tagSubmitting" @click="submitTag">创建</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -586,6 +790,44 @@ onMounted(async () => {
 
 .tag-select {
   width: 100%;
+}
+
+/*
+ * 下拉框最下面固定的「新增分类 / 新增标签」。
+ * 这一项放在 el-select 的 footer 插槽里，不跟着选项列表滚动，永远贴在面板底部。
+ */
+.select-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding: 0 20px;
+  border: none;
+  color: var(--accent-brown);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.select-create:hover,
+.select-create:focus-visible {
+  /* 和上面选项行 hover 用同一个底色（变量来自下拉面板，见 styles/admin.css） */
+  background: var(--el-fill-color-light, #f6efe3);
+  outline: none;
+}
+
+.select-create .el-icon {
+  font-size: 16px;
+}
+
+/* 分类下拉框里搜不到东西时的提示，指向下面那条「新增分类」 */
+.select-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .form-tip {
